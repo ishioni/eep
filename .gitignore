@@ -1,5 +1,6 @@
 # go output
 *.wasm
+*.wat
 
 # Editor
 .vscode/

@@ -20,7 +20,7 @@ services:
 
   # Envoy proxy with WASM plugin
   envoy:
-    image: envoyproxy/envoy:v1.37.0
+    image: envoyproxy/envoy:v1.38.0
     container_name: envoy-wasm
     ports:
       - "10000:10000"

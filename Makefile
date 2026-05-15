@@ -1,4 +1,4 @@
-.PHONY: help build build-docker clean version dev up down logs restart test-errors test-headers
+.PHONY: help build build-raw patch-wasi-imports validate-wasm build-docker clean version dev up down logs restart test-errors test-headers test fmt lint
 
 # Version defaults to git SHA (determined on host), but can be overridden
 # This is calculated here and passed to Docker, avoiding the need for .git in the image
@@ -15,6 +15,7 @@ BUILDMODE := c-shared
 LDFLAGS := -X main.version=$(VERSION)
 
 # Output files
+RAW_WASM_OUTPUT := main.raw.wasm
 WASM_OUTPUT := main.wasm
 DOCKER_WASM_OUTPUT := plugin.wasm
 
@@ -24,10 +25,23 @@ help: ## Show this help message
 	@echo "Targets:"
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-20s %s\n", $$1, $$2}'
 
-build: ## Build the WASM plugin locally
-	@echo "Building WASM plugin (version: $(VERSION))..."
-	GOOS=$(GOOS) GOARCH=$(GOARCH) go build -buildmode=$(BUILDMODE) -ldflags "$(LDFLAGS)" -o $(WASM_OUTPUT) main.go
+build: build-raw patch-wasi-imports validate-wasm ## Build and patch the WASM plugin locally
 	@echo "Build complete: $(WASM_OUTPUT)"
+
+build-raw: ## Build the unpatched Go WASM plugin
+	@echo "Building raw WASM plugin (version: $(VERSION))..."
+	GOOS=$(GOOS) GOARCH=$(GOARCH) go build -buildmode=$(BUILDMODE) -ldflags "$(LDFLAGS)" -o $(RAW_WASM_OUTPUT) main.go
+	@echo "Raw build complete: $(RAW_WASM_OUTPUT)"
+
+patch-wasi-imports: ## Patch unsupported WASI imports for Envoy's Proxy-Wasm runtime
+	@echo "Patching unsupported WASI imports..."
+	go run ./tools/patch-wasi-imports -in $(RAW_WASM_OUTPUT) -out $(WASM_OUTPUT)
+
+validate-wasm: ## Validate patched WASM and show remaining imports
+	@echo "Validating patched WASM..."
+	wasm-tools validate $(WASM_OUTPUT)
+	@echo "Remaining WASM imports:"
+	@wasm-tools print $(WASM_OUTPUT) | grep '^  (import' || true
 
 build-docker: ## Build Docker image with the WASM plugin (auto-passes VERSION)
 	@echo "Building Docker image (version: $(VERSION))..."
@@ -46,7 +60,7 @@ build-docker-version: ## Build Docker image with custom version (use VERSION=x.y
 
 clean: ## Remove build artifacts
 	@echo "Cleaning build artifacts..."
-	rm -f $(WASM_OUTPUT)
+	rm -f $(RAW_WASM_OUTPUT) $(WASM_OUTPUT) $(WASM_OUTPUT).wat
 	@echo "Clean complete"
 
 version: ## Show current version
