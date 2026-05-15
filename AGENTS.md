@@ -7,7 +7,7 @@ This repository has a non-obvious Envoy/Go/WASI compatibility issue. Read this b
 Start with:
 
 - `README.md` for the project goal and normal development workflow.
-- `docs/wasi-import-stubbing.md` for the current investigation into Go `text/template`, unsupported WASI imports, and the post-link stubbing experiment.
+- `docs/wasi-import-stubbing.md` for the current investigation into Go `text/template`, unsupported WASI imports, upstream fixes, and the post-link stubbing workaround.
 
 ## Current direction
 
@@ -29,13 +29,17 @@ Important upstream files to compare against:
 - Go `GOOS=wasip1 GOARCH=wasm` with `text/template` pulls in `os` and Go's WASI filesystem imports.
 - Envoy's V8 Proxy-Wasm runtime does not provide the full filesystem/socket WASI surface.
 - Go 1.26 and Envoy 1.38 were tested and still have this problem.
-- A post-link WASM stubbing experiment allowed Envoy to instantiate the module while keeping `text/template` linked.
+- A post-link WASM stubbing step allows current Envoy images to instantiate the module while keeping `text/template` linked.
+- The upstream hostcall fix was merged in `proxy-wasm/proxy-wasm-cpp-host#533`: https://github.com/proxy-wasm/proxy-wasm-cpp-host/pull/533
+- Envoy still needs to vendor that host update. Track `envoyproxy/envoy#44534`: https://github.com/envoyproxy/envoy/pull/44534
+- Once Envoy ships with that update, test raw `main.raw.wasm` without patching; the patcher should become optional or removable.
 
 ## Before making changes
 
 - Prefer documenting experiments and asking before changing architectural direction.
 - Keep `text/template` compatibility as a requirement unless the user explicitly changes that goal.
-- If implementing WASI stubbing, avoid brittle fixed-index hacks in production code; parse the WASM structure or use a reliable library/tooling path.
+- If changing WASI stubbing, remember it is expected to be temporary until Envoy includes the upstream hostcall support.
+- Avoid brittle fixed-index hacks in production code; parse the WASM structure or use a reliable library/tooling path.
 - If changing template data/functions, add or update compatibility tests based on `error-pages/internal/template/template_test.go`.
 
 ## Useful commands

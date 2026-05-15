@@ -23,6 +23,22 @@ Testing with Go 1.26 and Envoy 1.38 showed that this is still true:
 - Go 1.26 still emits the unsupported WASI imports.
 - Envoy 1.38 still does not provide them.
 
+## Upstream status
+
+This workaround should be temporary. The missing hostcall problem is being fixed upstream in the Proxy-Wasm host stack:
+
+- `proxy-wasm/proxy-wasm-cpp-host#533`: <https://github.com/proxy-wasm/proxy-wasm-cpp-host/pull/533>
+  - Merged into `proxy-wasm-cpp-host`.
+  - Adds the WASI hostcalls used by Go SDK / Go WASI modules, including the filesystem/socket functions currently stubbed here.
+  - Also expands the `_initialize` restricted-callback allowlist for Go runtime initialization.
+- `envoyproxy/envoy#44534`: <https://github.com/envoyproxy/envoy/pull/44534>
+  - Draft Envoy dependency update for `proxy-wasm-cpp-host`.
+  - This is the Envoy-side change needed before stock Envoy images include the hostcall support.
+
+Once Envoy ships with a `proxy-wasm-cpp-host` revision containing `#533`, the post-link stubbing step should no longer be necessary for this project. Verify this by building raw WASM (`make build-raw`), mounting `main.raw.wasm` directly as the plugin, and confirming that Envoy starts and renders `/500` without the patch step.
+
+Until that Envoy update lands in the image version used here, keep the patcher enabled.
+
 ## Why this is not fixed in the Go SDK
 
 The missing symbol is not a Proxy-Wasm SDK hostcall. It comes from the Go standard library itself.
@@ -152,31 +168,28 @@ wasm log: WASM Error Pages Plugin initialized
 wasm log: Error page template loaded: theme=connection, show_details=true
 ```
 
-A request to `/500` reached the plugin and was intercepted. Rendering then failed because the current Go function map is incomplete relative to the bundled `error-pages` templates:
+A request to `/500` reached the plugin, was intercepted, rendered with Go `text/template`, and returned the configured `connection` theme HTML.
 
-```text
-failed to render error page: failed to parse template: template: errorpage:322: function "ingress_name" not defined
-```
-
-This is a separate template-compatibility issue, not a WASI import issue.
+During the investigation, rendering initially failed because this project did not yet register all helper functions/tokens used by the bundled `error-pages` templates, for example `ingress_name`. That was a separate template-compatibility issue, not a WASI import issue, and has since been addressed by aligning the local template data/functions with `error-pages/internal/template`.
 
 ## Important caveats
 
-- This is a post-link workaround, not a proper Envoy or Go SDK fix.
+- This is a post-link workaround for current Envoy images, not a permanent Envoy or Go SDK fix.
+- The upstream fix is expected to arrive via `proxy-wasm-cpp-host#533` once Envoy vendors it, tracked by `envoyproxy/envoy#44534`.
 - The exact import indexes can change when Go, dependencies, or code change.
 - A production patcher should parse the WASM structure, not rely blindly on fixed line numbers in WAT.
 - Stubs should be safe only if the plugin never performs actual file/socket operations at runtime.
 - If a future template helper uses real filesystem or environment behavior, it may fail or behave unexpectedly.
 - `text/template` compatibility still requires matching the `error-pages` helper functions and token surface.
 
-## Recommended next implementation direction
+## Current implementation
 
-If continuing this approach, implement a deterministic build-time patch step:
+The build now uses a deterministic post-link patch step:
 
-1. Build `main.wasm` with Go.
-2. Run a small patcher that removes unsupported WASI imports and injects stubs.
-3. Validate the output with `wasm-tools validate` or an equivalent library.
-4. Fail the build if an unexpected unsupported WASI import remains.
-5. Keep tests that assert `wasm-tools print main.wasm` no longer contains imports like `fd_filestat_set_size`.
+1. Build `main.raw.wasm` with Go.
+2. Run `tools/patch-wasi-imports`, which uses `wasm-tools` to print/parse/validate WAT and rewrites unsupported WASI imports to internal stubs.
+3. Produce patched `main.wasm` for Envoy.
+4. Validate the output with `wasm-tools validate`.
+5. Fail the build if unsupported WASI imports remain.
 
-Then fix template compatibility separately by aligning this project's template data and functions with `error-pages/internal/template`.
+When Envoy includes the upstream hostcall support, test raw WASM loading and then make the patch step optional or remove it.
