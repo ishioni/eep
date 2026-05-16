@@ -1,15 +1,15 @@
 services:
   # Build the WASM plugin locally
-  wasm-builder:
-    image: golang:1.25-bookworm
-    container_name: wasm-builder
-    working_dir: /src
-    command: sh -c "GOOS=wasip1 GOARCH=wasm go build -buildmode=c-shared -ldflags '-X main.version=${VERSION:-dev}' -o /output/plugin.wasm main.go && echo 'WASM plugin built successfully'"
-    volumes:
-      - ./:/src:ro
-      - wasm-output:/output
-    environment:
-      - VERSION=${VERSION:-dev}
+  # wasm-builder:
+  #   image: tinygo/tinygo:0.40.1
+  #   container_name: wasm-builder
+  #   working_dir: /src
+  #   command: sh -c "tinygo build -o main.wasm -ldflags '-X main.version=${VERSION}' -scheduler=none -target=wasm main.go && echo 'WASM plugin built successfully'"
+  #   volumes:
+  #     - ./:/src:ro
+  #     - wasm-output:/output
+  #   environment:
+  #     - VERSION=${VERSION:-dev}
 
   # Debug HTTP backend that returns various status codes
   http-debug:
@@ -20,17 +20,17 @@ services:
 
   # Envoy proxy with WASM plugin
   envoy:
-    image: envoyproxy/envoy:v1.33.0
+    image: envoyproxy/envoy:v1.38.0
     container_name: envoy-wasm
     ports:
       - "10000:10000"
       - "9901:9901" # Admin interface
     volumes:
       - ./envoy.yaml:/etc/envoy/envoy.yaml:ro
-      - wasm-output:/etc/envoy/wasm:ro
+      - ./main.wasm:/etc/envoy/wasm/plugin.wasm
     depends_on:
-      wasm-builder:
-        condition: service_completed_successfully
+      # wasm-builder:
+      #   condition: service_completed_successfully
       http-debug:
         condition: service_started
     command: ["-c", "/etc/envoy/envoy.yaml", "--log-level", "info"]

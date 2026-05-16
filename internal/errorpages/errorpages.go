@@ -15,8 +15,10 @@
 package errorpages
 
 import (
+	"encoding/json"
 	"fmt"
 	"html"
+	"os"
 	"reflect"
 	"strconv"
 	"strings"
@@ -26,17 +28,23 @@ import (
 
 // TemplateData holds all the data that can be used in error page templates
 type TemplateData struct {
-	Code         int    `token:"code"`
-	Message      string `token:"message"`
-	Description  string `token:"description"`
-	ShowDetails  bool   `token:"show_details"`
-	Host         string `token:"host"`
-	OriginalURI  string `token:"original_uri"`
-	ForwardedFor string `token:"forwarded_for"`
-	RequestID    string `token:"request_id"`
-	NowUnix      int64  // registered as builtin function
-	L10nEnabled  bool   // registered as custom function
-	L10nScript   string // registered as custom function
+	Code               int    `token:"code"`
+	Message            string `token:"message"`
+	Description        string `token:"description"`
+	OriginalURI        string `token:"original_uri"`
+	Namespace          string `token:"namespace"`
+	IngressName        string `token:"ingress_name"`
+	ServiceName        string `token:"service_name"`
+	ServicePort        string `token:"service_port"`
+	RequestID          string `token:"request_id"`
+	ForwardedFor       string `token:"forwarded_for"`
+	Host               string `token:"host"`
+	ShowDetails        bool   `token:"show_details"`
+	ShowRequestDetails bool
+	L10nDisabled       bool   `token:"l10n_disabled"`
+	NowUnix            int64  // registered as builtin function
+	L10nEnabled        bool   // deprecated compatibility field; l10n_enabled is derived from L10nDisabled
+	L10nScript         string // registered as custom function
 }
 
 // Values converts TemplateData fields into a map keyed by their token tags,
@@ -59,11 +67,10 @@ type Handler struct {
 	version      string
 }
 
-// NewWithTemplate creates a handler that uses a Go template for error pages
+// NewWithTemplate creates a handler that uses a Go template for error pages.
 func NewWithTemplate(templateBytes []byte, version string) (*Handler, error) {
-	preprocessed := preprocessTemplate(string(templateBytes))
 	return &Handler{
-		templateText: preprocessed,
+		templateText: string(templateBytes),
 		version:      version,
 	}, nil
 }
@@ -88,12 +95,27 @@ func (h *Handler) RenderErrorPage(data *TemplateData) ([]byte, error) {
 		data.Description = getStatusDescription(data.Code)
 	}
 
+	data.ShowRequestDetails = data.ShowDetails
+
 	fns := template.FuncMap{
-		"escape":       html.EscapeString,
-		"nowUnix":      func() string { return strconv.FormatInt(data.NowUnix, 10) },
-		"l10n_enabled": func() bool { return data.L10nEnabled },
-		"l10nScript":   func() string { return data.L10nScript },
-		"namespace":    func() string { return "" },
+		"escape":        html.EscapeString,
+		"nowUnix":       func() int64 { return data.NowUnix },
+		"hostname":      func() string { h, _ := os.Hostname(); return h },
+		"json":          func(v any) string { b, _ := json.Marshal(v); return string(b) },
+		"int":           templateInt,
+		"version":       func() string { return h.version },
+		"strCount":      strings.Count,
+		"strContains":   strings.Contains,
+		"strTrimSpace":  strings.TrimSpace,
+		"strTrimPrefix": strings.TrimPrefix,
+		"strTrimSuffix": strings.TrimSuffix,
+		"strReplace":    strings.ReplaceAll,
+		"strIndex":      strings.Index,
+		"strFields":     strings.Fields,
+		"env":           os.Getenv,
+		"l10nScript":    func() string { return data.L10nScript },
+		"hide_details":  func() bool { return !data.ShowDetails },
+		"l10n_enabled":  func() bool { return !data.L10nDisabled },
 	}
 
 	for k, v := range data.Values() {
@@ -114,108 +136,28 @@ func (h *Handler) RenderErrorPage(data *TemplateData) ([]byte, error) {
 	return []byte(buf.String()), nil
 }
 
-// preprocessTemplate strips HTML/CSS/JS comment wrappers around Go template
-// directives so that text/template can parse them natively. Value expressions
-// like // {{ l10nScript }} are left untouched.
-func preprocessTemplate(raw string) string {
-	lines := strings.Split(raw, "\n")
-	for i, line := range lines {
-		trimmed := strings.TrimSpace(line)
-
-		// HTML comment wrapper: <!-- {{...}} -->
-		if strings.HasPrefix(trimmed, "<!--") && strings.HasSuffix(trimmed, "-->") {
-			inner := strings.TrimPrefix(trimmed, "<!--")
-			inner = strings.TrimSuffix(inner, "-->")
-			inner = strings.TrimSpace(inner)
-			if containsOnlyDirectives(inner) {
-				lines[i] = ensureOuterTrimMarkers(inner)
-				continue
-			}
+func templateInt(v any) int {
+	switch v := v.(type) {
+	case string:
+		if i, err := strconv.Atoi(strings.TrimSpace(v)); err == nil {
+			return i
 		}
-
-		// CSS comment wrapper: /* {{...}} */
-		if strings.HasPrefix(trimmed, "/*") && strings.HasSuffix(trimmed, "*/") {
-			inner := strings.TrimPrefix(trimmed, "/*")
-			inner = strings.TrimSuffix(inner, "*/")
-			inner = strings.TrimSpace(inner)
-			if containsOnlyDirectives(inner) {
-				lines[i] = ensureOuterTrimMarkers(inner)
-				continue
-			}
+	case int:
+		return v
+	case int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64:
+		if i, err := strconv.Atoi(fmt.Sprintf("%d", v)); err == nil {
+			return i
 		}
-
-		// JS line comment wrapper: // {{...}}
-		if strings.HasPrefix(trimmed, "//") && !strings.HasPrefix(trimmed, "///") {
-			inner := strings.TrimPrefix(trimmed, "//")
-			inner = strings.TrimSpace(inner)
-			if containsOnlyDirectives(inner) {
-				lines[i] = ensureOuterTrimMarkers(inner)
-				continue
-			}
+	case float32, float64:
+		if f, err := strconv.ParseFloat(fmt.Sprintf("%f", v), 64); err == nil {
+			return int(f)
+		}
+	case fmt.Stringer:
+		if i, err := strconv.Atoi(v.String()); err == nil {
+			return i
 		}
 	}
-	return strings.Join(lines, "\n")
-}
-
-// containsOnlyDirectives checks whether s consists entirely of Go template
-// actions ({{ ... }}) containing control-flow keywords, with only whitespace
-// between them.
-func containsOnlyDirectives(s string) bool {
-	s = strings.TrimSpace(s)
-	if s == "" {
-		return false
-	}
-
-	remaining := s
-	found := false
-	for len(remaining) > 0 {
-		idx := strings.Index(remaining, "{{")
-		if idx == -1 {
-			return found && strings.TrimSpace(remaining) == ""
-		}
-		if strings.TrimSpace(remaining[:idx]) != "" {
-			return false
-		}
-		endIdx := strings.Index(remaining[idx:], "}}")
-		if endIdx == -1 {
-			return false
-		}
-
-		action := remaining[idx+2 : idx+endIdx]
-		action = strings.Trim(action, "- ")
-		action = strings.TrimSpace(action)
-
-		if !isControlKeyword(action) {
-			return false
-		}
-
-		remaining = remaining[idx+endIdx+2:]
-		found = true
-	}
-	return found
-}
-
-var controlKeywords = []string{"if ", "else if ", "else", "end", "range ", "with ", "block ", "define ", "template "}
-
-func isControlKeyword(action string) bool {
-	for _, kw := range controlKeywords {
-		if action == strings.TrimSpace(kw) || strings.HasPrefix(action, kw) {
-			return true
-		}
-	}
-	return false
-}
-
-// ensureOuterTrimMarkers ensures the first {{ and last }} in the string have
-// whitespace-trimming markers ({{- and -}}).
-func ensureOuterTrimMarkers(s string) string {
-	if strings.HasPrefix(s, "{{") && !strings.HasPrefix(s, "{{-") {
-		s = "{{- " + strings.TrimLeft(s[2:], " ")
-	}
-	if strings.HasSuffix(s, "}}") && !strings.HasSuffix(s, "-}}") {
-		s = strings.TrimRight(s[:len(s)-2], " ") + " -}}"
-	}
-	return s
+	return 0
 }
 
 // getStatusMessage returns the standard HTTP status message for a code

@@ -104,9 +104,15 @@ type httpContext struct {
 
 	shouldReplaceBody bool
 	statusCode        string
-	// Request data for template rendering
+	// Request data for template rendering. Ingress metadata follows the
+	// ingress-nginx custom errors header convention used by the upstream
+	// error-pages project.
 	host         string
 	originalURI  string
+	namespace    string
+	ingressName  string
+	serviceName  string
+	servicePort  string
 	forwardedFor string
 	requestID    string
 }
@@ -120,8 +126,26 @@ func (ctx *httpContext) OnHttpRequestHeaders(numHeaders int, endOfStream bool) t
 		ctx.host = host
 	}
 
-	if path, err := proxywasm.GetHttpRequestHeader(":path"); err == nil {
+	if originalURI, err := proxywasm.GetHttpRequestHeader("x-original-uri"); err == nil {
+		ctx.originalURI = originalURI
+	} else if path, err := proxywasm.GetHttpRequestHeader(":path"); err == nil {
 		ctx.originalURI = path
+	}
+
+	if namespace, err := proxywasm.GetHttpRequestHeader("x-namespace"); err == nil {
+		ctx.namespace = namespace
+	}
+
+	if ingressName, err := proxywasm.GetHttpRequestHeader("x-ingress-name"); err == nil {
+		ctx.ingressName = ingressName
+	}
+
+	if serviceName, err := proxywasm.GetHttpRequestHeader("x-service-name"); err == nil {
+		ctx.serviceName = serviceName
+	}
+
+	if servicePort, err := proxywasm.GetHttpRequestHeader("x-service-port"); err == nil {
+		ctx.servicePort = servicePort
 	}
 
 	if xff, err := proxywasm.GetHttpRequestHeader("x-forwarded-for"); err == nil {
@@ -188,6 +212,10 @@ func (ctx *httpContext) OnHttpResponseBody(bodySize int, endOfStream bool) types
 		ShowDetails:  pluginConfig.ShowDetails,
 		Host:         ctx.host,
 		OriginalURI:  ctx.originalURI,
+		Namespace:    ctx.namespace,
+		IngressName:  ctx.ingressName,
+		ServiceName:  ctx.serviceName,
+		ServicePort:  ctx.servicePort,
 		ForwardedFor: ctx.forwardedFor,
 		RequestID:    ctx.requestID,
 	}
