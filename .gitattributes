@@ -1,0 +1,3 @@
+* text=auto eol=lf
+*.go linguist-language=Go
+*.wasm binary

@@ -1,0 +1,7 @@
+*.toml
+CHANGELOG.md
+.release-please-manifest.json
+TODO.md
+templates/**
+*.wasm
+*.wat

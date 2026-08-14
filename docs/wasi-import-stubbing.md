@@ -109,25 +109,25 @@ After this patch, Envoy loaded the module and the plugin initialized with `text/
 
 The experimental patch removed and stubbed this import range:
 
-| Import | Default stub return |
-| --- | --- |
-| `fd_filestat_set_size` | `ENOSYS` (`52`) |
-| `fd_pread` | `ENOSYS` (`52`) |
-| `fd_pwrite` | `ENOSYS` (`52`) |
-| `fd_read` | `ENOSYS` (`52`) |
-| `fd_readdir` | `ENOSYS` (`52`) |
-| `fd_seek` | `ENOSYS` (`52`) |
-| `fd_filestat_get` | `ENOSYS` (`52`) |
-| duplicate later `fd_write` | `ENOSYS` (`52`) |
-| `fd_sync` | `ENOSYS` (`52`) |
-| `path_filestat_get` | `ENOSYS` (`52`) |
-| `fd_fdstat_get` | `0` |
-| `fd_fdstat_set_flags` | `0` |
-| `fd_prestat_get` | `EBADF` (`8`) |
-| `fd_prestat_dir_name` | `ENOSYS` (`52`) |
-| `sock_accept` | `ENOSYS` (`52`) |
-| `sock_shutdown` | `ENOSYS` (`52`) |
-| duplicate later `path_filestat_get` | `ENOSYS` (`52`) |
+| Import                              | Default stub return |
+| ----------------------------------- | ------------------- |
+| `fd_filestat_set_size`              | `ENOSYS` (`52`)     |
+| `fd_pread`                          | `ENOSYS` (`52`)     |
+| `fd_pwrite`                         | `ENOSYS` (`52`)     |
+| `fd_read`                           | `ENOSYS` (`52`)     |
+| `fd_readdir`                        | `ENOSYS` (`52`)     |
+| `fd_seek`                           | `ENOSYS` (`52`)     |
+| `fd_filestat_get`                   | `ENOSYS` (`52`)     |
+| duplicate later `fd_write`          | `ENOSYS` (`52`)     |
+| `fd_sync`                           | `ENOSYS` (`52`)     |
+| `path_filestat_get`                 | `ENOSYS` (`52`)     |
+| `fd_fdstat_get`                     | `0`                 |
+| `fd_fdstat_set_flags`               | `0`                 |
+| `fd_prestat_get`                    | `EBADF` (`8`)       |
+| `fd_prestat_dir_name`               | `ENOSYS` (`52`)     |
+| `sock_accept`                       | `ENOSYS` (`52`)     |
+| `sock_shutdown`                     | `ENOSYS` (`52`)     |
+| duplicate later `path_filestat_get` | `ENOSYS` (`52`)     |
 
 ### Why some stubs return special values
 

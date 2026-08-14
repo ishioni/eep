@@ -12,82 +12,53 @@ This project provides an Envoy WASM extension written in Go that intercepts back
 
 ## Prerequisites
 
-- Docker
-- Go 1.25+ (for local development)
-- Git (for automatic version tagging)
-- Make (optional, for convenience commands)
+- [mise](https://mise.jdx.dev/)
+- Docker with Compose v2
+- Git
+
+Install the pinned Go and project tools, including `wasm-tools`, with:
+
+```bash
+mise install
+```
+
+Tool versions and development tasks are defined in `.mise/config.toml` and locked in
+`.mise/mise.lock`.
 
 ## Building
 
-### Using Make (Recommended)
-
 ```bash
-# Build WASM plugin locally (auto-uses git SHA as version)
-make build
+# Build, patch, and validate main.wasm
+mise run build
 
-# Build with specific version
-make build VERSION=1.0.0
+# Run Go tests with the race detector
+mise run test
 
-# Build Docker image (auto-uses git SHA)
-make build-docker
+# Build the scratch OCI artifact
+mise run docker-build
 
-# Build Docker image with specific version
-make build-docker VERSION=1.0.0
-
-# Show current version
-make version
-
-# Clean build artifacts
-make clean
-
-# Show all available commands
-make help
+# List all available tasks
+mise tasks
 ```
 
-### Using Docker Directly
+The Makefile remains as a compatibility wrapper, so `make build`, `make test`, and
+`make docker-build` delegate to the corresponding mise tasks.
 
-```bash
-# Build with automatic git SHA version
-docker build --build-arg VERSION=$(git rev-parse --short HEAD) -t envoy-wasm-error-pages:latest .
-
-# Build with custom version
-docker build --build-arg VERSION=1.0.0 -t envoy-wasm-error-pages:1.0.0 .
-
-# Build with default version (dev)
-docker build -t envoy-wasm-error-pages:latest .
-```
-
-### Using Go Directly
-
-```bash
-# Build with git SHA version
-GOOS=wasip1 GOARCH=wasm go build -buildmode=c-shared \
-  -ldflags "-X main.version=$(git rev-parse --short HEAD)" \
-  -o main.wasm main.go
-
-# Build with custom version
-GOOS=wasip1 GOARCH=wasm go build -buildmode=c-shared \
-  -ldflags "-X main.version=1.0.0" \
-  -o main.wasm main.go
-```
+`mise run build-raw` creates `main.raw.wasm` without the Envoy compatibility patch. The release
+artifact is `main.wasm`, produced by the full `mise run build` pipeline. Do not deploy the raw module
+against current Envoy images.
 
 ## Local Development
 
-The easiest way to develop and test the plugin is using the provided docker-compose setup:
+Build the module and start the local backend and Envoy stack:
 
 ```bash
-# Start the full development environment
-make up
-# or
-docker-compose up --build
-
-# This will start:
-# 1. WASM builder - builds the plugin from source
-# 2. http-debug - backend server that returns various status codes
-# 3. envoy - proxy with the WASM plugin loaded
+mise run build
+docker compose up
 ```
 
 The http-debug service provides endpoints that return different status codes:
+
 - `http://localhost:10000/200` - Returns 200 OK (passes through)
 - `http://localhost:10000/400` - Returns 400 (shows 4xx error page)
 - `http://localhost:10000/404` - Returns 404 (shows 4xx error page)
@@ -97,10 +68,10 @@ The http-debug service provides endpoints that return different status codes:
 ### Quick Testing
 
 ```bash
-# Test all error pages
-make test-errors
+# Build the module, start Envoy, verify passthrough plus 404/500 rendering, and clean up
+mise run smoke
 
-# View in browser (best way to see the full styling)
+# Or inspect the running stack in a browser
 open http://localhost:10000/500
 open http://localhost:10000/404
 ```
@@ -108,16 +79,16 @@ open http://localhost:10000/404
 ### Development Workflow
 
 1. Edit the built-in HTML templates in `templates/html/*.tpl.html`
-2. Restart the environment: `make restart` or `docker-compose up --build`
-3. Test your changes: `curl http://localhost:10000/500` or visit in browser
-4. Check Envoy logs: `make logs` or `docker-compose logs -f envoy`
+2. Rebuild with `mise run build`
+3. Test with `mise run smoke` or visit the local endpoints in a browser
+4. Check Envoy logs with `docker compose logs -f envoy`
 
 ### Stopping the Environment
 
 ```bash
 make down
 # or
-docker-compose down
+docker compose down
 ```
 
 ## Extracting the WASM File
@@ -125,7 +96,9 @@ docker-compose down
 To extract the WASM file from the Docker image for standalone use:
 
 ```bash
-docker run --rm --entrypoint cat envoy-wasm-error-pages:latest /plugin.wasm > plugin.wasm
+docker create --name envoy-wasm-extract --entrypoint /plugin.wasm envoy-wasm-error-pages:latest
+docker cp envoy-wasm-extract:/plugin.wasm ./plugin.wasm
+docker rm envoy-wasm-extract
 ```
 
 ## Running with Envoy
@@ -148,16 +121,13 @@ docker run --rm -it \
 
 ## Testing
 
-The docker-compose setup includes a test backend (http-debug) that makes testing easy:
+The Compose setup includes a test backend (`http-debug`) that makes testing easy. Run the automated smoke test with `mise run smoke`, or start the stack manually:
 
 ```bash
-# Start the development environment
-make up
+mise run build
+docker compose up -d
 
-# In another terminal, test the error pages
-make test-errors
-
-# Or test manually
+# Test manually
 curl http://localhost:10000/200   # Normal response (passes through)
 curl http://localhost:10000/400   # Client error (custom 4xx page)
 curl http://localhost:10000/404   # Not found (custom 4xx page)
@@ -200,12 +170,13 @@ The built-in error page templates are copied from the sibling `error-pages` proj
 You can edit these template files directly. They are embedded into the WASM binary at compile time using Go's `embed` package, so after editing them, you'll need to rebuild:
 
 ```bash
-make build
-# or
-make build-docker
+mise run build
+# or build the OCI artifact
+mise run docker-build
 ```
 
 The templates include:
+
 - Modern, responsive design
 - Gradient backgrounds
 - Action buttons (Go Back, Return Home, Retry)
@@ -266,25 +237,29 @@ Modify the `IsErrorStatus()` function in `internal/errorpages/errorpages.go` to 
 ### Code Structure
 
 **Main Package (`main.go`):**
+
 - `vmContext`: VM-level context for the plugin
 - `pluginContext`: Plugin-level context, handles initialization
 - `httpContext`: HTTP request/response context, handles error interception
 - `error4xxHTML` / `error5xxHTML`: Embedded HTML templates
 
 **Internal Packages:**
+
 - `internal/errorpages`: Error detection and page template management
 
 ### Logging
 
 The plugin uses different log levels:
+
 - `LogInfo`: Plugin initialization and error interception events
 - `LogDebug`: Detailed status codes and operation confirmations
 - `LogWarn`: Non-critical issues
 - `LogError`: Critical failures
 
 View logs in real-time:
+
 ```bash
-docker-compose logs -f envoy
+docker compose logs -f envoy
 ```
 
 ## License

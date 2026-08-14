@@ -1,0 +1,40 @@
+version: "2"
+linters:
+  default: standard
+  enable:
+    - durationcheck
+    - errorlint
+    - exhaustive
+    - gosec
+    - misspell
+    - nilerr
+    - prealloc
+    - unconvert
+    - unparam
+    - whitespace
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+    rules:
+      - linters:
+          - unparam
+        path: _test\.go
+formatters:
+  enable:
+    - gofmt
+    - gofumpt
+    - goimports
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$

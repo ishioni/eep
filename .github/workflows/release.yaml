@@ -1,0 +1,110 @@
+---
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
+name: Release
+
+on:
+  push:
+    branches: [master]
+    paths-ignore:
+      - "**.md"
+      - ".release-please-manifest.json"
+  release:
+    types: [published]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name != 'release' }}
+
+permissions:
+  contents: read
+
+jobs:
+  versions:
+    name: Resolve versions
+    runs-on: ubuntu-24.04
+    outputs:
+      go-version: ${{ steps.versions.outputs.go-version }}
+      wasm-tools-version: ${{ steps.versions.outputs.wasm-tools-version }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Setup Mise
+        uses: jdx/mise-action@3c2e0cf82a5b2e5249f0d3635a4d83d0ae861518 # v4.2.5
+        with:
+          cache: false
+          experimental: true
+          install: false
+      - name: Read configured tool versions
+        id: versions
+        run: |
+          echo "go-version=$(mise config get tools.go)" >> "$GITHUB_OUTPUT"
+          echo "wasm-tools-version=$(mise config get tools.wasm-tools)" >> "$GITHUB_OUTPUT"
+
+  image:
+    name: Publish image
+    needs: versions
+    permissions:
+      contents: read
+      id-token: write
+      packages: write
+    uses: docker/github-builder/.github/workflows/build.yml@a492c6d04fd3315f67230809b44d60cc0acd50b3 # v1.16.0
+    with:
+      build-args: |
+        VERSION=${{ github.ref_name }}
+        REVISION=${{ github.sha }}
+        GO_VERSION=${{ needs.versions.outputs.go-version }}
+        WASM_TOOLS_VERSION=${{ needs.versions.outputs.wasm-tools-version }}
+      cache: true
+      meta-images: ghcr.io/${{ github.repository }}
+      meta-tags: |
+        type=semver,pattern={{version}}
+        type=raw,value=latest,enable=${{ github.event_name == 'release' }}
+        type=ref,event=branch
+      output: image
+      platforms: linux/amd64,linux/arm64
+      push: true
+      sbom: true
+      set-meta-annotations: true
+      set-meta-labels: true
+      sign: true
+    secrets:
+      registry-auths: |
+        - registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+  wasm:
+    name: Publish WASM artifact
+    if: ${{ github.event_name == 'release' }}
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Setup Mise
+        uses: jdx/mise-action@3c2e0cf82a5b2e5249f0d3635a4d83d0ae861518 # v4.2.5
+        with:
+          cache: false
+          experimental: true
+          install_args: --locked
+      - name: Build release WASM
+        env:
+          VERSION: ${{ github.event.release.tag_name }}
+        run: |
+          mise run build
+          cp main.wasm envoy-wasm-error-pages.wasm
+          sha256sum envoy-wasm-error-pages.wasm > envoy-wasm-error-pages.wasm.sha256
+      - name: Attach WASM to release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: >-
+          gh release upload "${RELEASE_TAG}"
+          envoy-wasm-error-pages.wasm
+          envoy-wasm-error-pages.wasm.sha256
+          --clobber

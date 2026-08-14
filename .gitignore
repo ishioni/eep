@@ -1,7 +1,19 @@
-# go output
+# Build and test output
 *.wasm
 *.wat
+cover.out
+coverage.out
+coverage.txt
 
-# Editor
+# Editor and OS files
+.DS_Store
+.idea/
 .vscode/
 .zed/
+Thumbs.db
+
+# Local configuration and tool caches
+.env
+.env.*
+!.env.example
+.mise.local.toml
