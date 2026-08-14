@@ -3,17 +3,17 @@
 <head>
   <meta charset="utf-8">
   <meta name="robots" content="nofollow,noarchive,noindex">
-  <title>{{ code }}: {{ message }}</title>
+  <title>{{ .StatusCode }}: {{ .Message }}</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
-  <!-- {{ if or (eq code 408) (eq code 425) (eq code 429) (eq code 500) (eq code 502) (eq code 503) (eq code 504) }} -->
+  <!-- {{ if or (eq .StatusCode 408) (eq .StatusCode 425) (eq .StatusCode 429) (eq .StatusCode 500) (eq .StatusCode 502) (eq .StatusCode 503) (eq .StatusCode 504) }} -->
   <meta http-equiv="refresh" content="30">
   <!-- {{ end }} -->
-  <meta name="title" content="{{ code }}: {{ message | escape }}">
-  <meta name="description" content="{{ description | escape }}">
-  <meta property="og:title" content="{{ code }}: {{ message | escape }}">
-  <meta property="og:description" content="{{ description | escape }}">
-  <meta property="twitter:title" content="{{ code }}: {{ message | escape }}">
-  <meta property="twitter:description" content="{{ description | escape }}">
+  <meta name="title" content="{{ .StatusCode }}: {{ .Message | escape }}">
+  <meta name="description" content="{{ .Description | escape }}">
+  <meta property="og:title" content="{{ .StatusCode }}: {{ .Message | escape }}">
+  <meta property="og:description" content="{{ .Description | escape }}">
+  <meta property="twitter:title" content="{{ .StatusCode }}: {{ .Message | escape }}">
+  <meta property="twitter:description" content="{{ .Description | escape }}">
   <style>
     :root {
       --color-desktop: #008080;
@@ -174,6 +174,20 @@
       color: #252525;
     }
 
+    dialog section .content nav {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      justify-content: flex-start;
+      font-size: 0.8em;
+      padding-top: 1em;
+      gap: 0.6em;
+    }
+
+    dialog section .content nav a {
+      color: #252525;
+    }
+
     dialog .actions {
       display: flex;
       flex-direction: row;
@@ -321,7 +335,7 @@
 
     <dialog open>
       <header>
-        <p>{{ code }}: <span data-l10n>{{ message }}</span></p>
+        <p>{{ .StatusCode }}: <span data-l10n>{{ .Message }}</span></p>
         <div class="controls">
           <div class="button">
             <svg xmlns="http://www.w3.org/2000/svg" width="9" height="8" viewBox="0 0 2.381 2.117">
@@ -341,27 +355,35 @@
           </svg>
         </div>
         <div class="content">
-          <p><span data-l10n>{{ description }}</span><!-- {{- if show_details -}} -->.<!-- {{- end -}} --></p>
-          <!-- {{- if show_details -}} -->
-          <div class="details">
-            <!-- {{- if host -}} -->
-            <p class="output small"><span data-l10n>Host</span>: <code>{{ host }}</code></p>
-            <!-- {{- end }}{{ if original_uri -}} -->
-            <p class="output small"><span data-l10n>Original URI</span>: <code>{{ original_uri }}</code></p>
-            <!-- {{- end }}{{ if forwarded_for -}} -->
-            <p class="output small"><span data-l10n>Forwarded for</span>: <code>{{ forwarded_for }}</code></p>
-            <!-- {{- end }}{{ if namespace -}} -->
-            <p class="output small"><span data-l10n>Namespace</span>: <code>{{ namespace }}</code></p>
-            <!-- {{- end }}{{ if ingress_name -}} -->
-            <p class="output small"><span data-l10n>Ingress name</span>: <code>{{ ingress_name }}</code></p>
-            <!-- {{- end }}{{ if service_name -}} -->
-            <p class="output small"><span data-l10n>Service name</span>: <code>{{ service_name }}</code></p>
-            <!-- {{- end }}{{ if service_port -}} -->
-            <p class="output small"><span data-l10n>Service port</span>: <code>{{ service_port }}</code></p>
-            <!-- {{- end }}{{ if request_id -}} -->
-            <p class="output small"><span data-l10n>Request ID</span>: <code>{{ request_id }}</code></p>
+          <p><span data-l10n>{{ .Description }}</span>.</p>
+          <nav aria-label="Additional links">
+            <!-- {{ if .HomepageURL }} -->
+            <a href="{{ .HomepageURL }}" data-l10n>Go to homepage</a>
+            <!-- {{ end }} -->
+            <!-- {{- range .Links -}} -->
+            <a href="{{ .URL }}" data-l10n>{{ .Label }}</a>
             <!-- {{- end -}} -->
-            <p class="output small"><span data-l10n>Timestamp</span>: <code>{{ nowUnix }}</code></p>
+          </nav>
+          <!-- {{- if .Config.ShowRequestDetails -}} -->
+          <div class="details">
+            <!-- {{- if .Host -}} -->
+            <p class="output small"><span data-l10n>Host</span>: <code>{{ .Host }}</code></p>
+            <!-- {{- end }}{{ if .OriginalURI -}} -->
+            <p class="output small"><span data-l10n>Original URI</span>: <code>{{ .OriginalURI }}</code></p>
+            <!-- {{- end }}{{ if .ForwardedFor -}} -->
+            <p class="output small"><span data-l10n>Forwarded for</span>: <code>{{ .ForwardedFor }}</code></p>
+            <!-- {{- end }}{{ if .Namespace -}} -->
+            <p class="output small"><span data-l10n>Namespace</span>: <code>{{ .Namespace }}</code></p>
+            <!-- {{- end }}{{ if .IngressName -}} -->
+            <p class="output small"><span data-l10n>Ingress name</span>: <code>{{ .IngressName }}</code></p>
+            <!-- {{- end }}{{ if .ServiceName -}} -->
+            <p class="output small"><span data-l10n>Service name</span>: <code>{{ .ServiceName }}</code></p>
+            <!-- {{- end }}{{ if .ServicePort -}} -->
+            <p class="output small"><span data-l10n>Service port</span>: <code>{{ .ServicePort }}</code></p>
+            <!-- {{- end }}{{ if .RequestID -}} -->
+            <p class="output small"><span data-l10n>Request ID</span>: <code>{{ .RequestID }}</code></p>
+            <!-- {{- end -}} -->
+            <p class="output small"><span data-l10n>Timestamp</span>: <code>{{ now.Unix }}</code></p>
           </div>
           <!-- {{- end -}} -->
         </div>
@@ -532,7 +554,7 @@
   centerDialog();
 </script>
 
-<!-- {{- if l10n_enabled -}} -->
+<!-- {{- if (not .Config.L10nDisabled) -}} -->
 <script>// {{ l10nScript }}</script>
 <!-- {{- end -}} -->
 </body>

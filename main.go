@@ -210,6 +210,7 @@ func (ctx *httpContext) OnHttpResponseBody(bodySize int, endOfStream bool) types
 	templateData := &errorpages.TemplateData{
 		Code:         statusCode,
 		ShowDetails:  pluginConfig.ShowDetails,
+		L10nDisabled: true,
 		Host:         ctx.host,
 		OriginalURI:  ctx.originalURI,
 		Namespace:    ctx.namespace,

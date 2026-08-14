@@ -3,17 +3,17 @@
 <head>
   <meta charset="utf-8">
   <meta name="robots" content="nofollow,noarchive,noindex">
-  <title>{{ code }} - {{ message }}</title>
+  <title>{{ .StatusCode }} - {{ .Message }}</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <!-- {{ if or (eq code 408) (eq code 425) (eq code 429) (eq code 500) (eq code 502) (eq code 503) (eq code 504) }} -->
+  <!-- {{ if or (eq .StatusCode 408) (eq .StatusCode 425) (eq .StatusCode 429) (eq .StatusCode 500) (eq .StatusCode 502) (eq .StatusCode 503) (eq .StatusCode 504) }} -->
   <meta http-equiv="refresh" content="30">
   <!-- {{ end }} -->
-  <meta name="title" content="{{ code }}: {{ message | escape }}">
-  <meta name="description" content="{{ description | escape }}">
-  <meta property="og:title" content="{{ code }}: {{ message | escape }}">
-  <meta property="og:description" content="{{ description | escape }}">
-  <meta property="twitter:title" content="{{ code }}: {{ message | escape }}">
-  <meta property="twitter:description" content="{{ description | escape }}">
+  <meta name="title" content="{{ .StatusCode }}: {{ .Message | escape }}">
+  <meta name="description" content="{{ .Description | escape }}">
+  <meta property="og:title" content="{{ .StatusCode }}: {{ .Message | escape }}">
+  <meta property="og:description" content="{{ .Description | escape }}">
+  <meta property="twitter:title" content="{{ .StatusCode }}: {{ .Message | escape }}">
+  <meta property="twitter:description" content="{{ .Description | escape }}">
   <style>
     :root {
       --color-primary: #eee;
@@ -70,7 +70,24 @@
       margin: 0;
     }
 
-    /* {{ if show_details }} */
+    .hidden td, .hidden a {
+      opacity: 0;
+      font-size: 0;
+    }
+
+    .links {
+      display: flex;
+      gap: 1em;
+      margin-top: 1em;
+    }
+
+    .links a {
+      transition: opacity 1.4s, font-size .3s;
+      color: var(--color-inverted);
+      font-size: 0.85em;
+    }
+
+    /* {{ if .Config.ShowRequestDetails }} */
     #details {
       table-layout: fixed;
       width: 100%;
@@ -82,11 +99,6 @@
       white-space: nowrap;
       font-size: 0.7em;
       transition: opacity 1.4s, font-size .3s;
-    }
-
-    #details.hidden td {
-      opacity: 0;
-      font-size: 0;
     }
 
     #details .name,
@@ -119,56 +131,65 @@
 <main>
   <article>
     <div id="error_text">
-      <h1 class="source">{{ code }}: <span data-l10n>{{ message }}</span></h1>
+      <h1 class="source">{{ .StatusCode }}: <span data-l10n>{{ .Message }}</span></h1>
       <h1 class="target"></h1>
     </div>
 
-    <!-- {{- if show_details -}} -->
+    <nav aria-label="Additional links" class="links hidden">
+      <!-- {{ if .HomepageURL }} -->
+      <a href="{{ .HomepageURL }}" data-l10n>Go to homepage</a>
+      <!-- {{ end }} -->
+      <!-- {{- range .Links -}} -->
+      <a href="{{ .URL }}" data-l10n>{{ .Label }}</a>
+      <!-- {{- end -}} -->
+    </nav>
+
+    <!-- {{- if .Config.ShowRequestDetails -}} -->
     <table id="details" class="hidden">
-      <!-- {{- if host -}} -->
+      <!-- {{- if .Host -}} -->
       <tr>
         <td class="name"><span data-l10n>Host</span>:</td>
-        <td class="value">{{ host }}</td>
+        <td class="value">{{ .Host }}</td>
       </tr>
-      <!-- {{- end }}{{ if original_uri -}} -->
+      <!-- {{- end }}{{ if .OriginalURI -}} -->
       <tr>
         <td class="name"><span data-l10n>Original URI</span>:</td>
-        <td class="value">{{ original_uri }}</td>
+        <td class="value">{{ .OriginalURI }}</td>
       </tr>
-      <!-- {{- end }}{{ if forwarded_for -}} -->
+      <!-- {{- end }}{{ if .ForwardedFor -}} -->
       <tr>
         <td class="name"><span data-l10n>Forwarded for</span>:</td>
-        <td class="value">{{ forwarded_for }}</td>
+        <td class="value">{{ .ForwardedFor }}</td>
       </tr>
-      <!-- {{- end }}{{ if namespace -}} -->
+      <!-- {{- end }}{{ if .Namespace -}} -->
       <tr>
         <td class="name"><span data-l10n>Namespace</span>:</td>
-        <td class="value">{{ namespace }}</td>
+        <td class="value">{{ .Namespace }}</td>
       </tr>
-      <!-- {{- end }}{{ if ingress_name -}} -->
+      <!-- {{- end }}{{ if .IngressName -}} -->
       <tr>
         <td class="name"><span data-l10n>Ingress name</span>:</td>
-        <td class="value">{{ ingress_name }}</td>
+        <td class="value">{{ .IngressName }}</td>
       </tr>
-      <!-- {{- end }}{{ if service_name -}} -->
+      <!-- {{- end }}{{ if .ServiceName -}} -->
       <tr>
         <td class="name"><span data-l10n>Service name</span>:</td>
-        <td class="value">{{ service_name }}</td>
+        <td class="value">{{ .ServiceName }}</td>
       </tr>
-      <!-- {{- end }}{{ if service_port -}} -->
+      <!-- {{- end }}{{ if .ServicePort -}} -->
       <tr>
         <td class="name"><span data-l10n>Service port</span>:</td>
-        <td class="value">{{ service_port }}</td>
+        <td class="value">{{ .ServicePort }}</td>
       </tr>
-      <!-- {{- end }}{{ if request_id -}} -->
+      <!-- {{- end }}{{ if .RequestID -}} -->
       <tr>
         <td class="name"><span data-l10n>Request ID</span>:</td>
-        <td class="value">{{ request_id }}</td>
+        <td class="value">{{ .RequestID }}</td>
       </tr>
       <!-- {{- end -}} -->
       <tr>
         <td class="name"><span data-l10n>Timestamp</span>:</td>
-        <td class="value">{{ nowUnix }}</td>
+        <td class="value">{{ now.Unix }}</td>
       </tr>
     </table>
     <!-- {{- end -}} -->
@@ -254,14 +275,25 @@
 
   (new Shuffle(document.getElementById('error_text'))).start();
 
-  // {{ if show_details }}
   window.setTimeout(function () {
-    document.getElementById('details').classList.remove('hidden');
+    const $details = document.getElementById('details');
+    const $links = document.getElementsByClassName('links');
+
+    if ($details && $details.classList.contains('hidden')) {
+      $details.classList.remove('hidden');
+    }
+
+    if ($links) {
+      for (const $el of $links) {
+        if ($el.classList.contains('hidden')) {
+          $el.classList.remove('hidden');
+        }
+      }
+    }
   }, 550);
-  // {{ end }}
 </script>
 
-<!-- {{- if l10n_enabled -}} -->
+<!-- {{- if (not .Config.L10nDisabled) -}} -->
 <script>// {{ l10nScript }}</script>
 <!-- {{- end -}} -->
 </body>

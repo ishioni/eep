@@ -28,23 +28,45 @@ import (
 
 // TemplateData holds all the data that can be used in error page templates
 type TemplateData struct {
-	Code               int    `token:"code"`
-	Message            string `token:"message"`
-	Description        string `token:"description"`
-	OriginalURI        string `token:"original_uri"`
-	Namespace          string `token:"namespace"`
-	IngressName        string `token:"ingress_name"`
-	ServiceName        string `token:"service_name"`
-	ServicePort        string `token:"service_port"`
-	RequestID          string `token:"request_id"`
-	ForwardedFor       string `token:"forwarded_for"`
-	Host               string `token:"host"`
-	ShowDetails        bool   `token:"show_details"`
+	// StatusCode is the upstream error-pages field used by the current bundled templates.
+	StatusCode int
+	// Code is the legacy local field kept for compatibility with older local/custom templates.
+	Code int `token:"code"`
+
+	Message     string `token:"message"`
+	Description string `token:"description"`
+
+	OriginalURI  string `token:"original_uri"`
+	Namespace    string `token:"namespace"`
+	IngressName  string `token:"ingress_name"`
+	ServiceName  string `token:"service_name"`
+	ServicePort  string `token:"service_port"`
+	RequestID    string `token:"request_id"`
+	ForwardedFor string `token:"forwarded_for"`
+	Host         string `token:"host"`
+
+	HomepageURL string
+	Links       []TemplateLink
+	Config      TemplateConfig
+
+	ShowDetails        bool `token:"show_details"`
 	ShowRequestDetails bool
-	L10nDisabled       bool   `token:"l10n_disabled"`
-	NowUnix            int64  // registered as builtin function
-	L10nEnabled        bool   // deprecated compatibility field; l10n_enabled is derived from L10nDisabled
-	L10nScript         string // registered as custom function
+	L10nDisabled       bool  `token:"l10n_disabled"`
+	NowUnix            int64 // registered as builtin function
+	L10nEnabled        bool  // deprecated compatibility field; l10n_enabled is derived from L10nDisabled
+	L10nScript         string
+}
+
+// TemplateLink represents an additional link shown by upstream error-pages templates.
+type TemplateLink struct {
+	Label string
+	URL   string
+}
+
+// TemplateConfig holds template-facing configuration used by upstream error-pages templates.
+type TemplateConfig struct {
+	ShowRequestDetails bool
+	L10nDisabled       bool
 }
 
 // Values converts TemplateData fields into a map keyed by their token tags,
@@ -85,24 +107,37 @@ func IsErrorStatus(status string) bool {
 
 // RenderErrorPage renders the template with the provided data
 func (h *Handler) RenderErrorPage(data *TemplateData) ([]byte, error) {
+	if data.StatusCode == 0 {
+		data.StatusCode = data.Code
+	}
+	if data.Code == 0 {
+		data.Code = data.StatusCode
+	}
 	if data.NowUnix == 0 {
 		data.NowUnix = time.Now().Unix()
 	}
 	if data.Message == "" {
-		data.Message = getStatusMessage(data.Code)
+		data.Message = getStatusMessage(data.StatusCode)
 	}
 	if data.Description == "" {
-		data.Description = getStatusDescription(data.Code)
+		data.Description = getStatusDescription(data.StatusCode)
 	}
 
 	data.ShowRequestDetails = data.ShowDetails
+	data.Config.ShowRequestDetails = data.ShowRequestDetails
+	data.Config.L10nDisabled = data.L10nDisabled
 
+	toJSON := func(v any) string { b, _ := json.Marshal(v); return string(b) }
 	fns := template.FuncMap{
 		"escape":        html.EscapeString,
+		"now":           func() time.Time { return time.Unix(data.NowUnix, 0) },
 		"nowUnix":       func() int64 { return data.NowUnix },
 		"hostname":      func() string { h, _ := os.Hostname(); return h },
-		"json":          func(v any) string { b, _ := json.Marshal(v); return string(b) },
+		"json":          toJSON,
+		"toJson":        toJSON,
+		"toJSON":        toJSON,
 		"int":           templateInt,
+		"toInt":         templateInt,
 		"version":       func() string { return h.version },
 		"strCount":      strings.Count,
 		"strContains":   strings.Contains,

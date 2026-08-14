@@ -1,6 +1,7 @@
 package errorpages
 
 import (
+	"encoding/json"
 	"os"
 	"strings"
 	"testing"
@@ -99,7 +100,50 @@ escape={{ escape "<tag>" }}
 	}
 }
 
-func TestRenderBundledTemplates(t *testing.T) {
+func TestRenderBundledFormatTemplates(t *testing.T) {
+	data := &TemplateData{
+		Code:         404,
+		Message:      "Not Found",
+		Description:  "The requested resource was not found.",
+		ShowDetails:  true,
+		Host:         "example.test",
+		OriginalURI:  "/missing",
+		ForwardedFor: "192.0.2.10",
+		RequestID:    "test-request-id",
+		NowUnix:      1710000000,
+	}
+
+	for name, templateText := range map[string]string{
+		"json": templates.JSON,
+		"xml":  templates.XML,
+		"text": templates.PlainText,
+	} {
+		t.Run(name, func(t *testing.T) {
+			handler, err := NewWithTemplate([]byte(templateText), "test-version")
+			if err != nil {
+				t.Fatalf("failed to create handler for template %q: %v", name, err)
+			}
+
+			rendered, err := handler.RenderErrorPage(data)
+			if err != nil {
+				t.Fatalf("failed to render template %q: %v", name, err)
+			}
+
+			body := string(rendered)
+			if !strings.Contains(body, "404") {
+				t.Fatalf("rendered template %q does not contain status code 404", name)
+			}
+			if !strings.Contains(body, "Not Found") {
+				t.Fatalf("rendered template %q does not contain status message", name)
+			}
+			if name == "json" && !json.Valid(rendered) {
+				t.Fatalf("rendered JSON template is not valid JSON:\n%s", body)
+			}
+		})
+	}
+}
+
+func TestRenderBundledHTMLTemplates(t *testing.T) {
 	templateNames, err := templates.GetTemplateNames()
 	if err != nil {
 		t.Fatalf("failed to list bundled templates: %v", err)

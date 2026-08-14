@@ -3,17 +3,17 @@
 <head>
   <meta charset="utf-8">
   <meta name="robots" content="nofollow,noarchive,noindex">
-  <title>{{ code }} | {{ message }}</title>
+  <title>{{ .StatusCode }} | {{ .Message }}</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <!-- {{ if or (eq code 408) (eq code 425) (eq code 429) (eq code 500) (eq code 502) (eq code 503) (eq code 504) }} -->
+  <!-- {{ if or (eq .StatusCode 408) (eq .StatusCode 425) (eq .StatusCode 429) (eq .StatusCode 500) (eq .StatusCode 502) (eq .StatusCode 503) (eq .StatusCode 504) }} -->
   <meta http-equiv="refresh" content="30">
   <!-- {{ end }} -->
-  <meta name="title" content="{{ code }}: {{ message | escape }}">
-  <meta name="description" content="{{ description | escape }}">
-  <meta property="og:title" content="{{ code }}: {{ message | escape }}">
-  <meta property="og:description" content="{{ description | escape }}">
-  <meta property="twitter:title" content="{{ code }}: {{ message | escape }}">
-  <meta property="twitter:description" content="{{ description | escape }}">
+  <meta name="title" content="{{ .StatusCode }}: {{ .Message | escape }}">
+  <meta name="description" content="{{ .Description | escape }}">
+  <meta property="og:title" content="{{ .StatusCode }}: {{ .Message | escape }}">
+  <meta property="og:description" content="{{ .Description | escape }}">
+  <meta property="twitter:title" content="{{ .StatusCode }}: {{ .Message | escape }}">
+  <meta property="twitter:description" content="{{ .Description | escape }}">
   <style>
     :root {
       --color-bg-primary: #fff;
@@ -193,7 +193,24 @@
       color: var(--color-text-secondary);
     }
 
-    /* {{ if show_details }} */
+    footer .links {
+      display: flex;
+      flex-direction: row;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      gap: 1em;
+      font-size: clamp(0.9rem, 2.3vmin, 1rem);
+      margin: clamp(2rem, 5vmin, 3.5rem) 0;
+    }
+
+    footer .links a {
+      color: var(--color-text-secondary);
+      text-decoration: underline;
+      font-size: .85em;
+    }
+
+    /* {{ if .Config.ShowRequestDetails }} */
     footer .details {
       margin-top: 20px;
     }
@@ -235,8 +252,8 @@
 </head>
 <body>
 <header>
-  <h1 class="error-code">{{ code }}</h1>
-  <p class="error-description">{{ message }}</p>
+  <h1 class="error-code">{{ .StatusCode }}</h1>
+  <p class="error-description">{{ .Message }}</p>
 </header>
 <div class="status">
   <div class="card warning" id="client-status-card">
@@ -300,7 +317,7 @@
 <div class="reason">
   <div class="what-happened">
     <h2 data-l10n>What happened?</h2>
-    <p class="description" data-l10n>{{ description }}</p>
+    <p class="description" data-l10n>{{ .Description }}</p>
   </div>
   <div class="what-can-i-do">
     <h2 data-l10n>What can I do?</h2>
@@ -308,33 +325,43 @@
   </div>
 </div>
 <footer>
-  <!-- {{- if show_details -}} -->
+  <nav class="links" aria-label="Additional links">
+    <!-- {{ if .HomepageURL }} -->
+    <a href="{{ .HomepageURL }}" data-l10n>Go to homepage</a>
+    <!-- {{ end }} -->
+
+    <!-- {{- range .Links -}} -->
+    <a href="{{ .URL }}" data-l10n>{{ .Label }}</a>
+    <!-- {{- end -}} -->
+  </nav>
+
+  <!-- {{- if .Config.ShowRequestDetails -}} -->
   <div class="details">
     <ul>
-      <!-- {{- if host -}} -->
-      <li><span data-l10n>Host</span>: <code>{{ host }}</code></li>
-      <!-- {{- end }}{{ if original_uri -}} -->
-      <li><span data-l10n>Original URI</span>: <code>{{ original_uri }}</code></li>
-      <!-- {{- end }}{{ if forwarded_for -}} -->
-      <li><span data-l10n>Forwarded for</span>: <code>{{ forwarded_for }}</code></li>
-      <!-- {{- end }}{{ if namespace -}} -->
-      <li><span data-l10n>Namespace</span>: <code>{{ namespace }}</code></li>
-      <!-- {{- end }}{{ if ingress_name -}} -->
-      <li><span data-l10n>Ingress name</span>: <code>{{ ingress_name }}</code></li>
-      <!-- {{- end }}{{ if service_name -}} -->
-      <li><span data-l10n>Service name</span>: <code>{{ service_name }}</code></li>
-      <!-- {{- end }}{{ if service_port -}} -->
-      <li><span data-l10n>Service port</span>: <code>{{ service_port }}</code></li>
-      <!-- {{- end }}{{ if request_id -}} -->
-      <li><span data-l10n>Request ID</span>: <code>{{ request_id }}</code></li>
+      <!-- {{- if .Host -}} -->
+      <li><span data-l10n>Host</span>: <code>{{ .Host }}</code></li>
+      <!-- {{- end }}{{ if .OriginalURI -}} -->
+      <li><span data-l10n>Original URI</span>: <code>{{ .OriginalURI }}</code></li>
+      <!-- {{- end }}{{ if .ForwardedFor -}} -->
+      <li><span data-l10n>Forwarded for</span>: <code>{{ .ForwardedFor }}</code></li>
+      <!-- {{- end }}{{ if .Namespace -}} -->
+      <li><span data-l10n>Namespace</span>: <code>{{ .Namespace }}</code></li>
+      <!-- {{- end }}{{ if .IngressName -}} -->
+      <li><span data-l10n>Ingress name</span>: <code>{{ .IngressName }}</code></li>
+      <!-- {{- end }}{{ if .ServiceName -}} -->
+      <li><span data-l10n>Service name</span>: <code>{{ .ServiceName }}</code></li>
+      <!-- {{- end }}{{ if .ServicePort -}} -->
+      <li><span data-l10n>Service port</span>: <code>{{ .ServicePort }}</code></li>
+      <!-- {{- end }}{{ if .RequestID -}} -->
+      <li><span data-l10n>Request ID</span>: <code>{{ .RequestID }}</code></li>
       <!-- {{- end -}} -->
-      <li><span data-l10n>Timestamp</span>: <code>{{ nowUnix }}</code></li>
+      <li><span data-l10n>Timestamp</span>: <code>{{ now.Unix }}</code></li>
     </ul>
   </div>
   <!-- {{- end -}} -->
 </footer>
 <script>
-  const errorCode = parseInt(`{{ code }}`, 10);
+  const errorCode = parseInt(`{{ .StatusCode }}`, 10);
 
   if (errorCode && !isNaN(errorCode)) {
     /**
@@ -395,7 +422,7 @@
       [...document.getElementsByClassName('error-description')].forEach(($el) => $el.innerHTML = text);
     };
 
-    const message = `{{ message }}`.trim();
+    const message = `{{ .Message }}`.trim();
     const cards = {
       $client: document.getElementById('client-status-card'),
       $network: document.getElementById('network-status-card'),
@@ -449,13 +476,13 @@
         break;
     }
 
-    setReasons({whatHappened: `{{ description }}`.trim(), whatToDo: whatToDo.trim()});
+    setReasons({whatHappened: `{{ .Description }}`.trim(), whatToDo: whatToDo.trim()});
   } else {
     console.warn('Cannot parse the error code:', errorCode);
   }
 </script>
 
-<!-- {{- if l10n_enabled -}} -->
+<!-- {{- if (not .Config.L10nDisabled) -}} -->
 <script>// {{ l10nScript }}</script>
 <!-- {{- end -}} -->
 </body>

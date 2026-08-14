@@ -1,15 +1,26 @@
 <!DOCTYPE html>
 <!--
-{{ if show_details }}
-    {{ if host }}Host: {{ host }}{{ end }}
-    {{ if original_uri }}Original URI: {{ original_uri }}{{ end }}
-    {{ if forwarded_for }}Forwarded for: {{ forwarded_for }}{{ end }}
-    {{ if namespace }}Namespace: {{ namespace }}{{ end }}
-    {{ if ingress_name }}Ingress name: {{ ingress_name }}{{ end }}
-    {{ if service_name }}Service name: {{ service_name }}{{ end }}
-    {{ if service_port }}Service port: {{ service_port }}{{ end }}
-    {{ if request_id }}Request ID: {{ request_id }}{{ end }}
-    Timestamp: {{ nowUnix }}
+{{ if .HomepageURL }}
+Homepage: {{ .HomepageURL }}
+{{ end }}
+
+{{ if .Links }}
+Links:
+{{ range .Links }}
+- {{ .Label }}: {{ .URL }}
+{{ end }}
+{{ end }}
+
+{{ if .Config.ShowRequestDetails }}
+    {{ if .Host }}Host: {{ .Host }}{{ end }}
+    {{ if .OriginalURI }}Original URI: {{ .OriginalURI }}{{ end }}
+    {{ if .ForwardedFor }}Forwarded for: {{ .ForwardedFor }}{{ end }}
+    {{ if .Namespace }}Namespace: {{ .Namespace }}{{ end }}
+    {{ if .IngressName }}Ingress name: {{ .IngressName }}{{ end }}
+    {{ if .ServiceName }}Service name: {{ .ServiceName }}{{ end }}
+    {{ if .ServicePort }}Service port: {{ .ServicePort }}{{ end }}
+    {{ if .RequestID }}Request ID: {{ .RequestID }}{{ end }}
+    Timestamp: {{ now.Unix }}
 {{ end }}
 -->
 <html lang="en">
@@ -17,16 +28,16 @@
   <meta charset="utf-8">
   <meta name="robots" content="nofollow,noarchive,noindex">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <!-- {{ if or (eq code 408) (eq code 425) (eq code 429) (eq code 500) (eq code 502) (eq code 503) (eq code 504) }} -->
+  <!-- {{ if or (eq .StatusCode 408) (eq .StatusCode 425) (eq .StatusCode 429) (eq .StatusCode 500) (eq .StatusCode 502) (eq .StatusCode 503) (eq .StatusCode 504) }} -->
   <meta http-equiv="refresh" content="30">
   <!-- {{ end }} -->
-  <meta name="title" content="{{ code }}: {{ message | escape }}">
-  <meta name="description" content="{{ description | escape }}">
-  <meta property="og:title" content="{{ code }}: {{ message | escape }}">
-  <meta property="og:description" content="{{ description | escape }}">
-  <meta property="twitter:title" content="{{ code }}: {{ message | escape }}">
-  <meta property="twitter:description" content="{{ description | escape }}">
-  <title>{{ code }}: {{ message }}</title>
+  <meta name="title" content="{{ .StatusCode }}: {{ .Message | escape }}">
+  <meta name="description" content="{{ .Description | escape }}">
+  <meta property="og:title" content="{{ .StatusCode }}: {{ .Message | escape }}">
+  <meta property="og:description" content="{{ .Description | escape }}">
+  <meta property="twitter:title" content="{{ .StatusCode }}: {{ .Message | escape }}">
+  <meta property="twitter:description" content="{{ .Description | escape }}">
+  <title>{{ .StatusCode }}: {{ .Message }}</title>
   <style>
     html, body {
       margin: 0;
@@ -158,8 +169,8 @@
 
 <div class="container-center">
   <div>
-    <h1>{{code}}</h1>
-    <h2 data-l10n>{{ description }}</h2>
+    <h1>{{.StatusCode}}</h1>
+    <h2 data-l10n>{{ .Description }}</h2>
   </div>
 </div>
 
@@ -256,7 +267,7 @@
   });
 </script>
 
-<!-- {{- if l10n_enabled -}} -->
+<!-- {{- if (not .Config.L10nDisabled) -}} -->
 <script>// {{ l10nScript }}</script>
 <!-- {{- end -}} -->
 </body>

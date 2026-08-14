@@ -3,17 +3,17 @@
 <head>
   <meta charset="utf-8">
   <meta name="robots" content="nofollow,noarchive,noindex">
-  <title>{{ message }}</title>
+  <title data-l10n>{{ .Message }}</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <!-- {{ if or (eq code 408) (eq code 425) (eq code 429) (eq code 500) (eq code 502) (eq code 503) (eq code 504) }} -->
+  <!-- {{ if or (eq .StatusCode 408) (eq .StatusCode 425) (eq .StatusCode 429) (eq .StatusCode 500) (eq .StatusCode 502) (eq .StatusCode 503) (eq .StatusCode 504) }} -->
   <meta http-equiv="refresh" content="30">
   <!-- {{ end }} -->
-  <meta name="title" content="{{ code }}: {{ message | escape }}">
-  <meta name="description" content="{{ description | escape }}">
-  <meta property="og:title" content="{{ code }}: {{ message | escape }}">
-  <meta property="og:description" content="{{ description | escape }}">
-  <meta property="twitter:title" content="{{ code }}: {{ message | escape }}">
-  <meta property="twitter:description" content="{{ description | escape }}">
+  <meta name="title" content="{{ .StatusCode }}: {{ .Message | escape }}">
+  <meta name="description" content="{{ .Description | escape }}">
+  <meta property="og:title" content="{{ .StatusCode }}: {{ .Message | escape }}">
+  <meta property="og:description" content="{{ .Description | escape }}">
+  <meta property="twitter:title" content="{{ .StatusCode }}: {{ .Message | escape }}">
+  <meta property="twitter:description" content="{{ .Description | escape }}">
   <style>
     /** Codepen: https://codepen.io/kdbkapsere/pen/oNXLbqQ */
 
@@ -98,7 +98,21 @@
       font-weight: bold;
     }
 
-    /* {{ if show_details }} */
+    nav {
+      display: inline-flex;
+      align-items: flex-start;
+      flex-direction: row;
+      margin: 1em 0;
+      gap: .7em;
+    }
+
+    nav a {
+      color: var(--color-text-primary);
+      opacity: .75;
+      font-size: 0.9em;
+    }
+
+    /* {{ if .Config.ShowRequestDetails }} */
     .details {
       list-style: none;
       padding-left: 0;
@@ -420,36 +434,45 @@
     </svg>
   </div>
   <div class="content">
-    <h1>{{code}}</h1>
-    <h2><span data-l10n>UH OH</span>! <span data-l10n>{{ message }}</span></h2>
-    <p data-l10n>{{ description }}</p>
+    <h1>{{.StatusCode}}</h1>
+    <h2><span data-l10n>UH OH</span>! <span data-l10n>{{ .Message }}</span></h2>
+    <p data-l10n>{{ .Description }}</p>
 
-    <!-- {{- if show_details -}} -->
-    <ul class="details">
-      <!-- {{- if host -}} -->
-      <li><span data-l10n>Host</span>: <code>{{ host }}</code></li>
-      <!-- {{- end }}{{ if original_uri -}} -->
-      <li><span data-l10n>Original URI</span>: <code>{{ original_uri }}</code></li>
-      <!-- {{- end }}{{ if forwarded_for -}} -->
-      <li><span data-l10n>Forwarded for</span>: <code>{{ forwarded_for }}</code></li>
-      <!-- {{- end }}{{ if namespace -}} -->
-      <li><span data-l10n>Namespace</span>: <code>{{ namespace }}</code></li>
-      <!-- {{- end }}{{ if ingress_name -}} -->
-      <li><span data-l10n>Ingress name</span>: <code>{{ ingress_name }}</code></li>
-      <!-- {{- end }}{{ if service_name -}} -->
-      <li><span data-l10n>Service name</span>: <code>{{ service_name }}</code></li>
-      <!-- {{- end }}{{ if service_port -}} -->
-      <li><span data-l10n>Service port</span>: <code>{{ service_port }}</code></li>
-      <!-- {{- end }}{{ if request_id -}} -->
-      <li><span data-l10n>Request ID</span>: <code>{{ request_id }}</code></li>
+    <nav aria-label="Additional links">
+      <!-- {{ if .HomepageURL }} -->
+      <a href="{{ .HomepageURL }}" data-l10n>Go to homepage</a>
+      <!-- {{ end }} -->
+      <!-- {{- range .Links -}} -->
+      <a href="{{ .URL }}" data-l10n>{{ .Label }}</a>
       <!-- {{- end -}} -->
-      <li><span data-l10n>Timestamp</span>: <code>{{ nowUnix }}</code></li>
+    </nav>
+
+    <!-- {{- if .Config.ShowRequestDetails -}} -->
+    <ul class="details">
+      <!-- {{- if .Host -}} -->
+      <li><span data-l10n>Host</span>: <code>{{ .Host }}</code></li>
+      <!-- {{- end }}{{ if .OriginalURI -}} -->
+      <li><span data-l10n>Original URI</span>: <code>{{ .OriginalURI }}</code></li>
+      <!-- {{- end }}{{ if .ForwardedFor -}} -->
+      <li><span data-l10n>Forwarded for</span>: <code>{{ .ForwardedFor }}</code></li>
+      <!-- {{- end }}{{ if .Namespace -}} -->
+      <li><span data-l10n>Namespace</span>: <code>{{ .Namespace }}</code></li>
+      <!-- {{- end }}{{ if .IngressName -}} -->
+      <li><span data-l10n>Ingress name</span>: <code>{{ .IngressName }}</code></li>
+      <!-- {{- end }}{{ if .ServiceName -}} -->
+      <li><span data-l10n>Service name</span>: <code>{{ .ServiceName }}</code></li>
+      <!-- {{- end }}{{ if .ServicePort -}} -->
+      <li><span data-l10n>Service port</span>: <code>{{ .ServicePort }}</code></li>
+      <!-- {{- end }}{{ if .RequestID -}} -->
+      <li><span data-l10n>Request ID</span>: <code>{{ .RequestID }}</code></li>
+      <!-- {{- end -}} -->
+      <li><span data-l10n>Timestamp</span>: <code>{{ now.Unix }}</code></li>
     </ul>
     <!-- {{- end -}} -->
   </div>
 </main>
 
-<!-- {{- if l10n_enabled -}} -->
+<!-- {{- if (not .Config.L10nDisabled) -}} -->
 <script>// {{ l10nScript }}</script>
 <!-- {{- end -}} -->
 </body>

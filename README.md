@@ -107,7 +107,7 @@ open http://localhost:10000/404
 
 ### Development Workflow
 
-1. Edit the HTML templates in `templates/error-4xx.html` or `templates/error-5xx.html`
+1. Edit the built-in HTML templates in `templates/html/*.tpl.html`
 2. Restart the environment: `make restart` or `docker-compose up --build`
 3. Test your changes: `curl http://localhost:10000/500` or visit in browser
 4. Check Envoy logs: `make logs` or `docker-compose logs -f envoy`
@@ -190,12 +190,14 @@ You can also access the Envoy admin interface at http://localhost:9901
 
 ### Modifying Error Pages
 
-The error pages are stored as HTML files in the `templates/` directory:
+The built-in error page templates are copied from the sibling `error-pages` project and stored under `templates/`:
 
-- `templates/error-4xx.html` - Page shown for 4xx client errors
-- `templates/error-5xx.html` - Page shown for 5xx server errors
+- `templates/html/*.tpl.html` - Built-in HTML themes selected by `theme`
+- `templates/default.tpl.json` - Default JSON response template, reserved for content negotiation work
+- `templates/default.tpl.xml` - Default XML response template, reserved for content negotiation work
+- `templates/default.tpl.txt` - Default plain text response template, reserved for content negotiation work
 
-You can edit these HTML files directly without any Go knowledge! The files are embedded into the WASM binary at compile time using Go's `embed` package, so after editing the templates, you'll need to rebuild:
+You can edit these template files directly. They are embedded into the WASM binary at compile time using Go's `embed` package, so after editing them, you'll need to rebuild:
 
 ```bash
 make build
@@ -248,9 +250,10 @@ Modify the `IsErrorStatus()` function in `internal/errorpages/errorpages.go` to 
 │   └── errorpages/           # Error page handling
 │       └── errorpages.go
 ├── templates/                 # HTML error page templates
-│   ├── error-4xx.html        # Client error page (4xx)
-│   ├── error-5xx.html        # Server error page (5xx)
-│   └── README.md             # Template customization guide
+│   ├── default.tpl.json      # Default JSON response template
+│   ├── default.tpl.txt       # Default plain text response template
+│   ├── default.tpl.xml       # Default XML response template
+│   └── html/                 # Built-in HTML themes copied from error-pages
 ├── Makefile                   # Build automation
 ├── Dockerfile                 # Multi-stage Docker build
 ├── Dockerfile.debug           # Debug build configuration
