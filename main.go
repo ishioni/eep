@@ -16,7 +16,6 @@ package main
 
 import (
 	_ "embed"
-
 	"envoy-wasm-error-pages/internal/config"
 	"envoy-wasm-error-pages/internal/errorpages"
 	"envoy-wasm-error-pages/templates"
@@ -175,13 +174,17 @@ func (ctx *httpContext) OnHttpResponseHeaders(numHeaders int, endOfStream bool) 
 		ctx.statusCode = status
 		proxywasm.LogInfof("intercepting error response: %s", status)
 
-		// Remove headers that could conflict with our custom error page
-		proxywasm.RemoveHttpResponseHeader("content-length")
-		proxywasm.RemoveHttpResponseHeader("content-encoding")
-		proxywasm.RemoveHttpResponseHeader("content-type")
+		// Remove headers that could conflict with our custom error page.
+		for _, header := range []string{"content-length", "content-encoding", "content-type"} {
+			if err := proxywasm.RemoveHttpResponseHeader(header); err != nil {
+				proxywasm.LogWarnf("failed to remove response header %q: %v", header, err)
+			}
+		}
 
-		// Set content type for our HTML error page
-		proxywasm.AddHttpResponseHeader("content-type", "text/html; charset=utf-8")
+		// Set content type for our HTML error page.
+		if err := proxywasm.AddHttpResponseHeader("content-type", "text/html; charset=utf-8"); err != nil {
+			proxywasm.LogWarnf("failed to set error page content type: %v", err)
+		}
 	}
 
 	return types.ActionContinue

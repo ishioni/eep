@@ -59,7 +59,7 @@ func main() {
 }
 
 func run(in, out string, keepWat bool) error {
-	watBytes, err := commandOutput("wasm-tools", "print", in)
+	watBytes, err := wasmToolsOutput("print", in)
 	if err != nil {
 		return err
 	}
@@ -73,21 +73,21 @@ func run(in, out string, keepWat bool) error {
 	}
 
 	watPath := out + ".wat"
-	if err := os.WriteFile(watPath, []byte(patched), 0o644); err != nil {
+	if err := os.WriteFile(watPath, []byte(patched), 0o600); err != nil {
 		return fmt.Errorf("write patched WAT: %w", err)
 	}
 	if !keepWat {
 		defer os.Remove(watPath)
 	}
 
-	if _, err := commandOutput("wasm-tools", "parse", watPath, "-o", out); err != nil {
+	if _, err := wasmToolsOutput("parse", watPath, "-o", out); err != nil {
 		return err
 	}
-	if _, err := commandOutput("wasm-tools", "validate", out); err != nil {
+	if _, err := wasmToolsOutput("validate", out); err != nil {
 		return err
 	}
 
-	imports, err := commandOutput("wasm-tools", "print", out)
+	imports, err := wasmToolsOutput("print", out)
 	if err != nil {
 		return err
 	}
@@ -255,7 +255,7 @@ func unsupportedImportsInWAT(wat string) []string {
 			seen[imp.Name] = true
 		}
 	}
-	var result []string
+	result := make([]string, 0, len(seen))
 	for name := range seen {
 		result = append(result, name)
 	}
@@ -276,7 +276,9 @@ func sanitizeName(name string) string {
 	return strings.NewReplacer("-", "_", ".", "_", "/", "_").Replace(name)
 }
 
-func commandOutput(name string, args ...string) ([]byte, error) {
+func wasmToolsOutput(args ...string) ([]byte, error) {
+	const name = "wasm-tools"
+
 	cmd := exec.Command(name, args...)
 	var stderr bytes.Buffer
 	cmd.Stderr = &stderr

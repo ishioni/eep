@@ -2,11 +2,10 @@ package errorpages
 
 import (
 	"encoding/json"
+	"envoy-wasm-error-pages/templates"
 	"os"
 	"strings"
 	"testing"
-
-	"envoy-wasm-error-pages/templates"
 )
 
 func TestRenderCompatibilitySurface(t *testing.T) {

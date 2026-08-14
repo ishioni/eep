@@ -1,15 +1,15 @@
-# Use standard Go 1.26 for building WASM
-FROM golang:1.26-bookworm AS builder
+# syntax=docker/dockerfile:1
+# check=skip=InvalidDefaultArgInFrom
 
-WORKDIR /src
+ARG GO_VERSION
 
-# Version can be overridden at build time with --build-arg VERSION=x.y.z
-# If not provided, defaults to 'dev'
-ARG VERSION=dev
+FROM golang:${GO_VERSION}-bookworm AS builder
 ARG TARGETARCH
-ARG WASM_TOOLS_VERSION=1.248.0
+ARG VERSION=dev
+ARG REVISION=dev
+# renovate: datasource=github-releases depName=bytecodealliance/wasm-tools extractVersion=^v(?<version>.*)$
+ARG WASM_TOOLS_VERSION=1.256.0
 
-# Install wasm-tools for the post-link WASI import stubbing step.
 RUN apt-get update \
     && apt-get install -y --no-install-recommends ca-certificates curl tar \
     && rm -rf /var/lib/apt/lists/* \
@@ -18,20 +18,41 @@ RUN apt-get update \
         "arm64") WASM_TOOLS_ARCH="aarch64-linux" ;; \
         *) echo "unsupported TARGETARCH: ${TARGETARCH}"; exit 1 ;; \
     esac \
-    && curl -fsSL "https://github.com/bytecodealliance/wasm-tools/releases/download/v${WASM_TOOLS_VERSION}/wasm-tools-${WASM_TOOLS_VERSION}-${WASM_TOOLS_ARCH}.tar.gz" -o /tmp/wasm-tools.tar.gz \
+    && curl -fsSL \
+        "https://github.com/bytecodealliance/wasm-tools/releases/download/v${WASM_TOOLS_VERSION}/wasm-tools-${WASM_TOOLS_VERSION}-${WASM_TOOLS_ARCH}.tar.gz" \
+        -o /tmp/wasm-tools.tar.gz \
     && tar -xzf /tmp/wasm-tools.tar.gz -C /tmp \
-    && install /tmp/wasm-tools-${WASM_TOOLS_VERSION}-${WASM_TOOLS_ARCH}/wasm-tools /usr/local/bin/wasm-tools \
+    && install \
+        "/tmp/wasm-tools-${WASM_TOOLS_VERSION}-${WASM_TOOLS_ARCH}/wasm-tools" \
+        /usr/local/bin/wasm-tools \
     && rm -rf /tmp/wasm-tools* \
     && wasm-tools --version
 
-COPY . .
+WORKDIR /workspace
 
-# Build the WASM binary using the new Go WASIP1 target, then post-process it
-# for Envoy's limited WASI import surface. The final main.wasm is patched.
-RUN make build VERSION=${VERSION}
+COPY go.mod go.sum ./
+RUN go mod download
 
-# Use a minimal base image for the OCI artifact
+COPY main.go config.yaml ./
+COPY internal/ internal/
+COPY templates/ templates/
+COPY tools/ tools/
+
+RUN CGO_ENABLED=0 go build -trimpath -o /usr/local/bin/patch-wasi-imports ./tools/patch-wasi-imports
+RUN GOOS=wasip1 GOARCH=wasm go build -trimpath -buildmode=c-shared \
+    -ldflags "-s -w -X main.version=${VERSION}" \
+    -o main.raw.wasm main.go
+RUN patch-wasi-imports -in main.raw.wasm -out main.wasm \
+    && wasm-tools validate main.wasm
+
 FROM scratch
+ARG VERSION=dev
+ARG REVISION=dev
 
-# Envoy looks for the wasm file
-COPY --from=builder /src/main.wasm ./plugin.wasm
+LABEL org.opencontainers.image.title="Envoy WASM Error Pages" \
+    org.opencontainers.image.description="Envoy Proxy-Wasm error page renderer" \
+    org.opencontainers.image.version="${VERSION}" \
+    org.opencontainers.image.revision="${REVISION}" \
+    org.opencontainers.image.source="https://github.com/ishioni/envoy-wasm-error-pages"
+
+COPY --from=builder /workspace/main.wasm /plugin.wasm

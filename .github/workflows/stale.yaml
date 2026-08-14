@@ -1,0 +1,28 @@
+---
+# yaml-language-server: $schema=https://json.schemastore.org/github-workflow.json
+name: Stale
+
+on:
+  schedule:
+    - cron: "30 2 * * *"
+  workflow_dispatch:
+
+permissions:
+  issues: write
+  pull-requests: write
+
+jobs:
+  stale:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Mark stale issues and pull requests
+        uses: actions/stale@4391f3da665fdf50b6810c1a66712fb9ba21aa93 # v11.0.0
+        with:
+          stale-issue-message: "This issue is stale because it has been open for 90 days with no activity."
+          stale-pr-message: "This pull request is stale because it has been open for 30 days with no activity."
+          close-issue-message: "Closing this stale issue after 30 additional days without activity."
+          close-pr-message: "Closing this stale pull request after 14 additional days without activity."
+          days-before-issue-stale: 90
+          days-before-issue-close: 30
+          days-before-pr-stale: 30
+          days-before-pr-close: 14

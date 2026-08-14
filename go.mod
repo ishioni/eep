@@ -1,5 +1,5 @@
 module envoy-wasm-error-pages
 
-go 1.26.0
+go 1.26.6
 
 require github.com/proxy-wasm/proxy-wasm-go-sdk v0.0.0-20260105142703-44c7d5847745

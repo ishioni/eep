@@ -20,9 +20,9 @@ The relevant sibling project is available at:
 Important upstream files to compare against:
 
 - `error-pages/internal/template/template.go`
-- `error-pages/internal/template/props.go`
+- `error-pages/internal/template/data.go`
 - `error-pages/internal/template/template_test.go`
-- `error-pages/templates/*.html`
+- `error-pages/templates/html/*.tpl.html`
 
 ## Known findings
 
@@ -42,11 +42,22 @@ Important upstream files to compare against:
 - Avoid brittle fixed-index hacks in production code; parse the WASM structure or use a reliable library/tooling path.
 - If changing template data/functions, add or update compatibility tests based on `error-pages/internal/template/template_test.go`.
 
-## Useful commands
+## Tooling and validation
 
-- Build WASM: `make build`
-- Run tests: `go test ./...`
-- Inspect WASM imports: `wasm-tools print main.wasm | grep '^  (import'`
-- Validate WASM: `wasm-tools validate main.wasm`
-- Start local Envoy stack: `docker-compose up -d --build`
-- Check Envoy logs: `docker-compose logs envoy`
+Mise is the source of truth for tool versions and development tasks. Run `mise install` after cloning and
+`mise tasks` to discover the same commands used by CI. The Makefile is only a compatibility wrapper.
+
+Before finishing a change, run the relevant focused tasks and then the full checks:
+
+- Format Go and non-Go files: `mise run fmt && mise run oxfmt`
+- Check formatting: `mise run fmt-check && mise run oxfmt-check`
+- Run tests: `mise run test`
+- Run lint and vet: `mise run lint && mise run vet`
+- Scan dependencies: `mise run vulncheck`
+- Build and validate WASM: `mise run build`
+- Test through Envoy: `mise run smoke`
+- Build the OCI artifact: `mise run docker-build`
+- Audit workflows: `mise run actionlint && mise run zizmor`
+
+The release artifact is `main.wasm`. `main.raw.wasm` is intentionally unpatched and exists only for compatibility
+experiments. Current Envoy images still require the patched module.
