@@ -178,52 +178,6 @@ provenance = "github-attestations"
 version = "0.63.0"
 backend = "npm:oxfmt"
 
-[[tools.wasm-tools]]
-version = "1.256.0"
-backend = "aqua:bytecodealliance/wasm-tools"
-
-[tools.wasm-tools."platforms.linux-arm64"]
-checksum = "sha256:d75de3cd49d39f9bf7688aa776ac02d6cf9068c7926e8149300ad811b1e65443"
-url = "https://github.com/bytecodealliance/wasm-tools/releases/download/v1.256.0/wasm-tools-1.256.0-aarch64-linux.tar.gz"
-url_api = "https://api.github.com/repos/bytecodealliance/wasm-tools/releases/assets/508962495"
-provenance = "github-attestations"
-
-[tools.wasm-tools."platforms.linux-arm64-musl"]
-checksum = "sha256:d75de3cd49d39f9bf7688aa776ac02d6cf9068c7926e8149300ad811b1e65443"
-url = "https://github.com/bytecodealliance/wasm-tools/releases/download/v1.256.0/wasm-tools-1.256.0-aarch64-linux.tar.gz"
-url_api = "https://api.github.com/repos/bytecodealliance/wasm-tools/releases/assets/508962495"
-provenance = "github-attestations"
-
-[tools.wasm-tools."platforms.linux-x64"]
-checksum = "sha256:0b488be25c9e8a74dfa09f7eac614a927ea197f389d8fa5a21ffb1c15deb469d"
-url = "https://github.com/bytecodealliance/wasm-tools/releases/download/v1.256.0/wasm-tools-1.256.0-x86_64-linux.tar.gz"
-url_api = "https://api.github.com/repos/bytecodealliance/wasm-tools/releases/assets/508962511"
-provenance = "github-attestations"
-
-[tools.wasm-tools."platforms.linux-x64-musl"]
-checksum = "sha256:0b488be25c9e8a74dfa09f7eac614a927ea197f389d8fa5a21ffb1c15deb469d"
-url = "https://github.com/bytecodealliance/wasm-tools/releases/download/v1.256.0/wasm-tools-1.256.0-x86_64-linux.tar.gz"
-url_api = "https://api.github.com/repos/bytecodealliance/wasm-tools/releases/assets/508962511"
-provenance = "github-attestations"
-
-[tools.wasm-tools."platforms.macos-arm64"]
-checksum = "sha256:6e6a2df459b9f29ecfce148146d40178a4e6275de417e4ab7ebc1e27b9a41a24"
-url = "https://github.com/bytecodealliance/wasm-tools/releases/download/v1.256.0/wasm-tools-1.256.0-aarch64-macos.tar.gz"
-url_api = "https://api.github.com/repos/bytecodealliance/wasm-tools/releases/assets/508962498"
-provenance = "github-attestations"
-
-[tools.wasm-tools."platforms.macos-x64"]
-checksum = "sha256:a73cd71796275f4bd19b0616d09584168a147aec2e9f39a24d00ef88d0cc2350"
-url = "https://github.com/bytecodealliance/wasm-tools/releases/download/v1.256.0/wasm-tools-1.256.0-x86_64-macos.tar.gz"
-url_api = "https://api.github.com/repos/bytecodealliance/wasm-tools/releases/assets/508962514"
-provenance = "github-attestations"
-
-[tools.wasm-tools."platforms.windows-x64"]
-checksum = "sha256:8ce28d91e40ac077a40e133d332d7909747f5179e795e3f022cfbad95e5df3b7"
-url = "https://github.com/bytecodealliance/wasm-tools/releases/download/v1.256.0/wasm-tools-1.256.0-x86_64-windows.zip"
-url_api = "https://api.github.com/repos/bytecodealliance/wasm-tools/releases/assets/508962517"
-provenance = "github-attestations"
-
 [[tools.zizmor]]
 version = "1.29.0"
 backend = "aqua:zizmorcore/zizmor"

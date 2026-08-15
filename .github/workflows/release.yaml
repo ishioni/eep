@@ -24,7 +24,7 @@ jobs:
     runs-on: ubuntu-24.04
     outputs:
       go-version: ${{ steps.versions.outputs.go-version }}
-      wasm-tools-version: ${{ steps.versions.outputs.wasm-tools-version }}
+
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -40,7 +40,6 @@ jobs:
         id: versions
         run: |
           echo "go-version=$(mise config get tools.go)" >> "$GITHUB_OUTPUT"
-          echo "wasm-tools-version=$(mise config get tools.wasm-tools)" >> "$GITHUB_OUTPUT"
 
   image:
     name: Publish image
@@ -55,7 +54,6 @@ jobs:
         VERSION=${{ github.ref_name }}
         REVISION=${{ github.sha }}
         GO_VERSION=${{ needs.versions.outputs.go-version }}
-        WASM_TOOLS_VERSION=${{ needs.versions.outputs.wasm-tools-version }}
       cache: true
       meta-images: ghcr.io/${{ github.repository }}
       meta-tags: |

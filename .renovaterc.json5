@@ -9,22 +9,6 @@
       groupName: "Go toolchain",
       groupSlug: "go-toolchain",
     },
-    {
-      description: "Keep wasm-tools aligned across mise and Docker",
-      matchManagers: ["mise", "custom.regex"],
-      matchDepNames: ["wasm-tools", "bytecodealliance/wasm-tools"],
-      groupName: "wasm-tools",
-      groupSlug: "wasm-tools",
-    },
-  ],
-  customManagers: [
-    {
-      customType: "regex",
-      managerFilePatterns: ["/^Dockerfile$/"],
-      matchStrings: [
-        "# renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+) extractVersion=(?<extractVersion>\\S+)\\s+ARG WASM_TOOLS_VERSION=(?<currentValue>\\S+)",
-      ],
-    },
   ],
   postUpgradeTasks: {
     commands: [],

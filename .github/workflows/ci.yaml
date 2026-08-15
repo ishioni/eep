@@ -100,7 +100,6 @@ jobs:
         id: versions
         run: |
           echo "go=$(mise config get tools.go)" >> "$GITHUB_OUTPUT"
-          echo "wasm-tools=$(mise config get tools.wasm-tools)" >> "$GITHUB_OUTPUT"
       - name: Set up Buildx
         uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4.2.0
       - name: Build container
@@ -111,7 +110,6 @@ jobs:
           tags: eep:test
           build-args: |
             GO_VERSION=${{ steps.versions.outputs.go }}
-            WASM_TOOLS_VERSION=${{ steps.versions.outputs.wasm-tools }}
             VERSION=test
             REVISION=${{ github.sha }}
           cache-from: type=gha
