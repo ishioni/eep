@@ -65,10 +65,22 @@ docker compose down -v
 | `mise run docker-build` | Build the scratch OCI artifact        |
 | `mise run clean`        | Remove generated build/test artifacts |
 
-## Customize a template
+## Customize a template or configuration
 
-Built-in HTML themes live under `templates/html/*.tpl.html`. The selected theme is configured in
-`config.yaml`.
+Built-in HTML themes live under `templates/html/*.tpl.html`. Select a theme at deployment time with
+JSON plugin configuration; eep defaults to `connection` and shows request details by default:
+
+```json
+{
+  "theme": "connection",
+  "showDetails": true
+}
+```
+
+For direct Envoy, place that JSON in the Wasm filter's `google.protobuf.StringValue` configuration.
+For Envoy Gateway, use it under `EnvoyExtensionPolicy.spec.wasm[].config`. See the configuration
+examples in the [README](README.md#configuration). Set `showDetails` to `false` for public-facing
+responses unless exposing request metadata is intentional.
 
 After editing a template, run:
 

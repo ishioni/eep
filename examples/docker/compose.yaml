@@ -1,0 +1,19 @@
+---
+name: eep-example
+
+services:
+  http-debug:
+    image: ghcr.io/ishioni/http-debug:0.0.3
+
+  envoy:
+    image: envoyproxy/envoy:v1.39.0
+    depends_on:
+      http-debug:
+        condition: service_started
+    command: ["-c", "/etc/envoy/envoy.yaml", "--log-level", "info"]
+    ports:
+      - "10000:10000"
+      - "9901:9901"
+    volumes:
+      - ./envoy.yaml:/etc/envoy/envoy.yaml:ro
+      - ./plugin.wasm:/etc/envoy/plugin.wasm:ro
