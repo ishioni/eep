@@ -48,6 +48,22 @@ The Makefile remains as a compatibility wrapper, so `make build`, `make test`, a
 artifact is `main.wasm`, produced by the full `mise run build` pipeline. Do not deploy the raw module
 against current Envoy images.
 
+## Response formats
+
+Eep chooses an error representation from the request's `Accept` header and preserves the original
+4xx or 5xx status code. The supported media types are:
+
+| `Accept` media type                                             | Response `Content-Type`           |
+| --------------------------------------------------------------- | --------------------------------- |
+| `text/html`                                                     | `text/html; charset=utf-8`        |
+| `application/json`, `text/json`, or a `+json` structured suffix | `application/json; charset=utf-8` |
+| `application/xml`, `text/xml`, or a `+xml` structured suffix    | `application/xml; charset=utf-8`  |
+| `text/plain`                                                    | `text/plain; charset=utf-8`       |
+
+When several supported media types are present, eep selects the highest `q` value and preserves
+header order for ties. Missing, wildcard-only, malformed, or unsupported `Accept` headers fall back
+to the configured HTML theme.
+
 ## Local Development
 
 Build the module and start the local backend and Envoy stack:
