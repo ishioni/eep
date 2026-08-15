@@ -1,4 +1,4 @@
-module envoy-wasm-error-pages
+module github.com/ishioni/eep
 
 go 1.26.6
 

@@ -108,7 +108,7 @@ jobs:
         with:
           context: .
           push: false
-          tags: envoy-wasm-error-pages:test
+          tags: eep:test
           build-args: |
             GO_VERSION=${{ steps.versions.outputs.go }}
             WASM_TOOLS_VERSION=${{ steps.versions.outputs.wasm-tools }}

@@ -1,4 +1,4 @@
-# Configuration file for Envoy WASM Error Pages Plugin
+# Configuration file for eep, the Envoy Error Pages plugin
 
 # theme controls which error page template to use
 # Available themes:

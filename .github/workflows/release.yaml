@@ -97,14 +97,14 @@ jobs:
           VERSION: ${{ github.event.release.tag_name }}
         run: |
           mise run build
-          cp main.wasm envoy-wasm-error-pages.wasm
-          sha256sum envoy-wasm-error-pages.wasm > envoy-wasm-error-pages.wasm.sha256
+          cp main.wasm eep.wasm
+          sha256sum eep.wasm > eep.wasm.sha256
       - name: Attach WASM to release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RELEASE_TAG: ${{ github.event.release.tag_name }}
         run: >-
           gh release upload "${RELEASE_TAG}"
-          envoy-wasm-error-pages.wasm
-          envoy-wasm-error-pages.wasm.sha256
+          eep.wasm
+          eep.wasm.sha256
           --clobber

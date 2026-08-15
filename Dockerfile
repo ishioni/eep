@@ -49,10 +49,10 @@ FROM scratch
 ARG VERSION=dev
 ARG REVISION=dev
 
-LABEL org.opencontainers.image.title="Envoy WASM Error Pages" \
-    org.opencontainers.image.description="Envoy Proxy-Wasm error page renderer" \
+LABEL org.opencontainers.image.title="eep" \
+    org.opencontainers.image.description="Envoy error pages Proxy-Wasm extension" \
     org.opencontainers.image.version="${VERSION}" \
     org.opencontainers.image.revision="${REVISION}" \
-    org.opencontainers.image.source="https://github.com/ishioni/envoy-wasm-error-pages"
+    org.opencontainers.image.source="https://github.com/ishioni/eep"
 
 COPY --from=builder /workspace/main.wasm /plugin.wasm

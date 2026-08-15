@@ -16,9 +16,10 @@ package main
 
 import (
 	_ "embed"
-	"envoy-wasm-error-pages/internal/config"
-	"envoy-wasm-error-pages/internal/errorpages"
-	"envoy-wasm-error-pages/templates"
+
+	"github.com/ishioni/eep/internal/config"
+	"github.com/ishioni/eep/internal/errorpages"
+	"github.com/ishioni/eep/templates"
 
 	"github.com/proxy-wasm/proxy-wasm-go-sdk/proxywasm"
 	"github.com/proxy-wasm/proxy-wasm-go-sdk/proxywasm/types"
@@ -64,7 +65,7 @@ func (ctx *pluginContext) NewHttpContext(contextID uint32) types.HttpContext {
 
 // OnPluginStart implements types.PluginContext.
 func (ctx *pluginContext) OnPluginStart(pluginConfigurationSize int) types.OnPluginStartStatus {
-	proxywasm.LogInfo("WASM Error Pages Plugin initialized (version: " + version + ")")
+	proxywasm.LogInfo("eep initialized (version: " + version + ")")
 
 	// Parse configuration
 	var err error

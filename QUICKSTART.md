@@ -90,9 +90,9 @@ mise run docker-build
 The scratch image contains the validated module at `/plugin.wasm`. Extract it with:
 
 ```bash
-docker create --name envoy-wasm-extract --entrypoint /plugin.wasm envoy-wasm-error-pages
-docker cp envoy-wasm-extract:/plugin.wasm ./plugin.wasm
-docker rm envoy-wasm-extract
+docker create --name eep-extract --entrypoint /plugin.wasm eep
+docker cp eep-extract:/plugin.wasm ./plugin.wasm
+docker rm eep-extract
 ```
 
 ## Troubleshooting

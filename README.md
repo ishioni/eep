@@ -1,6 +1,6 @@
-# Envoy WASM Error Pages
+# eep
 
-This project provides an Envoy WASM extension written in Go that intercepts backend error responses (4xx and 5xx status codes) and replaces them with custom HTML error pages.
+**eep** (Envoy Error Pages) is an Envoy Proxy-Wasm extension written in Go that intercepts backend error responses (4xx and 5xx status codes) and replaces them with custom HTML error pages.
 
 ## Features
 
@@ -96,9 +96,9 @@ docker compose down
 To extract the WASM file from the Docker image for standalone use:
 
 ```bash
-docker create --name envoy-wasm-extract --entrypoint /plugin.wasm envoy-wasm-error-pages:latest
-docker cp envoy-wasm-extract:/plugin.wasm ./plugin.wasm
-docker rm envoy-wasm-extract
+docker create --name eep-extract --entrypoint /plugin.wasm eep:latest
+docker cp eep-extract:/plugin.wasm ./plugin.wasm
+docker rm eep-extract
 ```
 
 ## Running with Envoy
