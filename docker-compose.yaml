@@ -1,18 +1,6 @@
 name: eep
 
 services:
-  # Build the WASM plugin locally
-  # wasm-builder:
-  #   image: tinygo/tinygo:0.40.1
-  #   container_name: wasm-builder
-  #   working_dir: /src
-  #   command: sh -c "tinygo build -o main.wasm -ldflags '-X main.version=${VERSION}' -scheduler=none -target=wasm main.go && echo 'WASM plugin built successfully'"
-  #   volumes:
-  #     - ./:/src:ro
-  #     - wasm-output:/output
-  #   environment:
-  #     - VERSION=${VERSION:-dev}
-
   # Debug HTTP backend that returns various status codes
   http-debug:
     image: ghcr.io/ishioni/http-debug:0.0.3
@@ -31,11 +19,6 @@ services:
       - ./envoy.yaml:/etc/envoy/envoy.yaml:ro
       - ./main.wasm:/etc/envoy/wasm/plugin.wasm
     depends_on:
-      # wasm-builder:
-      #   condition: service_completed_successfully
       http-debug:
         condition: service_started
     command: ["-c", "/etc/envoy/envoy.yaml", "--log-level", "info"]
-
-volumes:
-  wasm-output:
