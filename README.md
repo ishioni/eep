@@ -282,31 +282,16 @@ The templates include:
 - Mobile-friendly layout
 - Customizable colors, text, and styling
 
-### Adding Status-Specific Pages
+### Status-specific content
 
-To handle specific status codes differently, modify the `GetErrorPage()` function in `internal/errorpages/errorpages.go`:
+Templates can branch on `.StatusCode` with standard `text/template` actions. For example:
 
-```go
-func (h *Handler) GetErrorPage(status string) []byte {
-    switch status {
-    case "404":
-        return error404HTML
-    case "500":
-        return error500HTML
-    case "503":
-        return error503HTML
-    default:
-        if status[0] == '4' {
-            return h.error4xxHTML
-        }
-        return h.error5xxHTML
-    }
-}
+```gotemplate
+{{ if eq .StatusCode 404 }}The requested page does not exist.{{ else }}{{ .Description }}{{ end }}
 ```
 
-### Excluding Certain Error Codes
-
-Modify the `IsErrorStatus()` function in `internal/errorpages/errorpages.go` to exclude specific status codes from being intercepted.
+Eep intercepts all valid 4xx and 5xx statuses. To change that policy, update `ParseErrorStatus` in
+`internal/errorpages/status.go` and its table-driven tests.
 
 ## Development
 
@@ -316,9 +301,15 @@ Modify the `IsErrorStatus()` function in `internal/errorpages/errorpages.go` to 
 .
 ├── main.go                    # Entry point and WASM contexts
 ├── internal/                  # Internal packages
-│   └── errorpages/           # Error page handling
-│       └── errorpages.go
-├── templates/                 # HTML error page templates
+│   ├── config/               # Runtime plugin configuration
+│   └── errorpages/           # Negotiation and rendering
+│       ├── data.go           # Upstream-compatible template data
+│       ├── format.go         # Accept-header content negotiation
+│       ├── functions.go      # error-pages-compatible template functions
+│       ├── renderer.go       # Per-format template selection
+│       ├── status.go         # Error status parsing and defaults
+│       └── template.go       # Parsed text/template execution
+├── templates/                 # Error response templates
 │   ├── default.tpl.json      # Default JSON response template
 │   ├── default.tpl.txt       # Default plain text response template
 │   ├── default.tpl.xml       # Default XML response template
@@ -337,13 +328,14 @@ Modify the `IsErrorStatus()` function in `internal/errorpages/errorpages.go` to 
 **Main Package (`main.go`):**
 
 - `vmContext`: VM-level context for the plugin
-- `pluginContext`: Plugin-level context, handles initialization
-- `httpContext`: HTTP request/response context, handles error interception
+- `pluginContext`: owns one plugin instance's runtime configuration and immutable renderer
+- `httpContext`: captures request metadata and performs response interception
 - runtime configuration is read from the Proxy-Wasm host during plugin startup
 
-**Internal Packages:**
+**Internal packages:**
 
-- `internal/errorpages`: Error detection and page template management
+- `internal/config`: strict JSON runtime configuration and defaults
+- `internal/errorpages`: pure status parsing, content negotiation, compatibility conversion, and rendering
 
 ### Logging
 
