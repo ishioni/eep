@@ -19,6 +19,7 @@ import (
 
 	"github.com/ishioni/eep/internal/config"
 	"github.com/ishioni/eep/internal/errorpages"
+	"github.com/ishioni/eep/l10n"
 	"github.com/ishioni/eep/templates"
 
 	"github.com/proxy-wasm/proxy-wasm-go-sdk/proxywasm"
@@ -48,15 +49,17 @@ func (*vmContext) NewPluginContext(contextID uint32) types.PluginContext {
 type pluginContext struct {
 	types.DefaultPluginContext
 
-	config   config.Config
-	renderer *errorpages.Renderer
+	config               config.Config
+	renderer             *errorpages.Renderer
+	localizationDisabled bool
 }
 
 // NewHttpContext implements types.PluginContext.
 func (ctx *pluginContext) NewHttpContext(contextID uint32) types.HttpContext {
 	return &httpContext{
-		renderer:    ctx.renderer,
-		showDetails: ctx.config.ShowDetails,
+		renderer:             ctx.renderer,
+		showDetails:          ctx.config.ShowDetails,
+		localizationDisabled: ctx.localizationDisabled,
 	}
 }
 
@@ -76,6 +79,12 @@ func (ctx *pluginContext) OnPluginStart(pluginConfigurationSize int) types.OnPlu
 		return types.OnPluginStartStatusFailed
 	}
 
+	locale, err := l10n.Resolve(pluginConfig.Locale)
+	if err != nil {
+		proxywasm.LogCriticalf("invalid locale configuration: %v", err)
+		return types.OnPluginStartStatusFailed
+	}
+
 	// Validate the configured theme at startup rather than silently serving a different theme.
 	templateBytes, err := templates.GetTemplate(pluginConfig.Theme)
 	if err != nil {
@@ -88,7 +97,10 @@ func (ctx *pluginContext) OnPluginStart(pluginConfigurationSize int) types.OnPlu
 		errorpages.JSONFormat:      []byte(templates.JSON),
 		errorpages.XMLFormat:       []byte(templates.XML),
 		errorpages.PlainTextFormat: []byte(templates.PlainText),
-	}, version)
+	}, errorpages.RendererOptions{
+		Version:            version,
+		LocalizationScript: locale.Script(),
+	})
 	if err != nil {
 		proxywasm.LogCriticalf("failed to initialize error page renderer: %v", err)
 		return types.OnPluginStartStatusFailed
@@ -96,8 +108,14 @@ func (ctx *pluginContext) OnPluginStart(pluginConfigurationSize int) types.OnPlu
 
 	ctx.config = *pluginConfig
 	ctx.renderer = renderer
+	ctx.localizationDisabled = locale.Disabled()
 
-	proxywasm.LogInfof("error page templates loaded: theme=%s, show_details=%v", ctx.config.Theme, ctx.config.ShowDetails)
+	proxywasm.LogInfof(
+		"error page templates loaded: theme=%s, show_details=%v, locale=%s",
+		ctx.config.Theme,
+		ctx.config.ShowDetails,
+		locale.String(),
+	)
 	return types.OnPluginStartStatusOK
 }
 
@@ -105,11 +123,12 @@ func (ctx *pluginContext) OnPluginStart(pluginConfigurationSize int) types.OnPlu
 type httpContext struct {
 	types.DefaultHttpContext
 
-	renderer          *errorpages.Renderer
-	showDetails       bool
-	shouldReplaceBody bool
-	responseFormat    errorpages.Format
-	statusCode        uint16
+	renderer             *errorpages.Renderer
+	showDetails          bool
+	localizationDisabled bool
+	shouldReplaceBody    bool
+	responseFormat       errorpages.Format
+	statusCode           uint16
 	// Request data for template rendering. Ingress metadata follows the
 	// ingress-nginx custom errors header convention used by the upstream
 	// error-pages project.
@@ -229,7 +248,7 @@ func (ctx *httpContext) OnHttpResponseBody(bodySize int, endOfStream bool) types
 		RequestID:    ctx.requestID,
 		Config: errorpages.TemplateConfig{
 			ShowRequestDetails: ctx.showDetails,
-			L10nDisabled:       true,
+			L10nDisabled:       ctx.localizationDisabled,
 		},
 	}
 

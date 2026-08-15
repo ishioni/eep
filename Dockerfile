@@ -15,8 +15,10 @@ RUN go mod download
 
 COPY main.go ./
 COPY internal/ internal/
+COPY l10n/ l10n/
 COPY templates/ templates/
 
+RUN go generate ./l10n/...
 RUN GOOS=wasip1 GOARCH=wasm go build -trimpath -buildmode=c-shared \
     -ldflags "-s -w -X main.version=${VERSION}" \
     -o main.wasm main.go

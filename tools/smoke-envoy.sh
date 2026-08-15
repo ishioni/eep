@@ -45,7 +45,9 @@ assert_error_response 'application/xml' 'application/xml; charset=utf-8' '<error
 assert_error_response 'text/plain' 'text/plain; charset=utf-8' 'Error 404: Not Found' 404
 assert_error_response 'text/html' 'text/html; charset=utf-8' '<title>500: Internal Server Error</title>' 500
 
-if grep -Fq 'Original URI' "${response_body}"; then
+grep -Fq 'window.l10n.setLocale("pl")' "${response_body}"
+
+if grep -Fq '<table class="details">' "${response_body}"; then
     echo "request details were rendered despite showDetails=false" >&2
     exit 1
 fi

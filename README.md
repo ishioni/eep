@@ -8,7 +8,8 @@
 - **Content Negotiation**: Responds with HTML, JSON, XML, or plain text according to the request's `Accept` header
 - **Custom Error Pages**: Provides error pages for all client errors (4xx) and server errors (5xx)
 - **Template-Based Design**: Built-in response templates are stored in separate files for easy customization without Go knowledge
-- **Runtime Configuration**: Select the HTML theme and request-detail visibility through the host's plugin configuration
+- **Runtime Configuration**: Select the HTML theme, request-detail visibility, and locale through the host's plugin configuration
+- **Localization**: Localize HTML pages automatically from browser preferences or force a configured locale
 - **Version Tracking**: Automatically embeds the git commit SHA into the plugin for easy version identification
 - **Lightweight**: Compiled to WASM for minimal overhead
 
@@ -98,9 +99,10 @@ open http://localhost:10000/404
 ### Development Workflow
 
 1. Edit the built-in HTML templates in `templates/html/*.tpl.html`
-2. Rebuild with `mise run build`
-3. Test with `mise run smoke` or visit the local endpoints in a browser
-4. Check Envoy logs with `docker compose logs -f envoy`
+2. Edit localization source in `l10n/locales.json` when needed
+3. Rebuild with `mise run build`; localization artifacts are generated automatically
+4. Test with `mise run smoke` or visit the local endpoints in a browser
+5. Check Envoy logs with `docker compose logs -f envoy`
 
 ### Stopping the Environment
 
@@ -130,7 +132,8 @@ provided, it uses the following defaults:
 ```json
 {
   "theme": "connection",
-  "showDetails": false
+  "showDetails": false,
+  "locale": "auto"
 }
 ```
 
@@ -138,11 +141,27 @@ provided, it uses the following defaults:
 | ------------- | ------- | ------------ | ----------------------------------------------------------------------------------------------- |
 | `theme`       | string  | `connection` | Built-in HTML theme name from `templates/html/` (for example `connection`, `cats`, or `ghost`). |
 | `showDetails` | boolean | `false`      | Whether rendered responses include request metadata.                                            |
+| `locale`      | string  | `auto`       | HTML locale: browser-selected `auto`, English, or a supported base/region-qualified language.   |
 
-Unknown fields, malformed JSON, an empty theme, or a theme that is not embedded in the module cause
-plugin startup to fail rather than silently serving an unexpected page. When enabled, `showDetails`
+Unknown fields, malformed JSON, an empty theme or locale, an unavailable theme, or an unsupported locale
+cause plugin startup to fail rather than silently serving an unexpected page. When enabled, `showDetails`
 exposes request metadata such as the host, URI, forwarded-for value, Kubernetes service identifiers, and
 request ID; keep it `false` for public-facing error responses unless that information is intended to be visible.
+
+#### Localization
+
+Localization applies to HTML responses only. JSON, XML, and plain-text responses remain English. Supported
+translated locales are `de`, `es`, `fr`, `hu`, `id`, `it`, `ko`, `nl`, `no`, `pl`, `pt`, `ro`, `ru`, `uk`,
+and `zh`.
+
+- `locale: auto` embeds the client-side localization runtime and selects from `navigator.languages`.
+- An explicit locale such as `pl` forces that language for every HTML page rendered by the plugin instance.
+- Regional tags fall back to a supported base language, for example `fr-CA` to `fr`.
+- English (`en` or a region-qualified tag such as `en-US`) keeps the original content and omits the script.
+
+The pages remain readable in English if JavaScript is disabled. Localization uses an inline script, so a strict
+Content Security Policy must explicitly permit it. The embedded runtime adds roughly 54 KiB to localized HTML
+responses before Envoy compression; compression remains the proxy's responsibility.
 
 ### Using Envoy Directly
 
@@ -161,7 +180,8 @@ typed_config:
       value: |
         {
           "theme": "connection",
-          "showDetails": false
+          "showDetails": false,
+          "locale": "auto"
         }
     vm_config:
       runtime: envoy.wasm.runtime.v8
@@ -171,7 +191,8 @@ typed_config:
 ```
 
 The repository's [`envoy.yaml`](envoy.yaml) is a complete local development example. It deliberately
-selects `ghost` and disables details so the smoke test verifies that the configuration is consumed.
+selects `ghost`, disables details, and forces Polish localization so the smoke test verifies that the
+configuration is consumed.
 For a release-image Docker Compose deployment, see [`examples/docker`](examples/docker). Run the local
 configuration with:
 
@@ -188,7 +209,7 @@ docker run --rm -it \
 
 Use `EnvoyExtensionPolicy.spec.wasm[].config` for ordinary eep configuration. Envoy Gateway serializes
 this object to JSON and supplies it as the plugin configuration. `env.hostKeys` only forwards existing
-Envoy-process environment variables and is not needed for theme or detail settings.
+Envoy-process environment variables and is not needed for theme, detail, or locale settings.
 
 ```yaml
 apiVersion: gateway.envoyproxy.io/v1alpha1
@@ -212,6 +233,7 @@ spec:
       config:
         theme: connection
         showDetails: false
+        locale: auto
 ```
 
 `rootID` identifies the extension's root context and must be unique among Wasm extensions attached to
@@ -309,12 +331,12 @@ Eep intercepts all valid 4xx and 5xx statuses. To change that policy, update `Pa
 │       ├── renderer.go       # Per-format template selection
 │       ├── status.go         # Error status parsing and defaults
 │       └── template.go       # Parsed text/template execution
+├── l10n/                      # Localization source, generator, and embedded runtime
 ├── templates/                 # Error response templates
 │   ├── default.tpl.json      # Default JSON response template
 │   ├── default.tpl.txt       # Default plain text response template
 │   ├── default.tpl.xml       # Default XML response template
 │   └── html/                 # Built-in HTML themes copied from error-pages
-
 ├── Dockerfile                 # Multi-stage Docker build
 ├── Dockerfile.debug           # Debug build configuration
 ├── docker-compose.yaml        # Local testing setup
@@ -335,7 +357,8 @@ Eep intercepts all valid 4xx and 5xx statuses. To change that policy, update `Pa
 **Internal packages:**
 
 - `internal/config`: strict JSON runtime configuration and defaults
-- `internal/errorpages`: pure status parsing, content negotiation, compatibility conversion, and rendering
+- `internal/errorpages`: pure status parsing, content negotiation, and rendering
+- `l10n`: locale validation plus generated, embedded client-side localization
 
 ### Logging
 

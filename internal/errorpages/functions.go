@@ -15,8 +15,9 @@ import (
 )
 
 type templateDependencies struct {
-	now      func() time.Time
-	hostname func() string
+	now                func() time.Time
+	hostname           func() string
+	localizationScript string
 }
 
 func defaultTemplateDependencies() templateDependencies {
@@ -63,8 +64,7 @@ func templateFunctions(version string, dependencies templateDependencies) templa
 		"isNotEmpty":  func(value any) bool { return !isEmpty(value) },
 		"truncate":    truncate,
 		"trimAll":     trimAll,
-		// Localization remains disabled in eep. The function must exist so upstream templates parse.
-		"l10nScript": func() string { return "" },
+		"l10nScript":  func() string { return dependencies.localizationScript },
 	}
 }
 

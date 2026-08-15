@@ -12,6 +12,7 @@ zizmor = "1.29.0"
 
 [tasks.build]
 description = "Build the release WASM module"
+depends = ["l10n-generate"]
 run = """
 GOOS=wasip1 GOARCH=wasm go build -trimpath -buildmode=c-shared \
   -ldflags "-s -w -X main.version=${VERSION:-dev}" \
@@ -20,18 +21,26 @@ GOOS=wasip1 GOARCH=wasm go build -trimpath -buildmode=c-shared \
 
 [tasks.test]
 description = "Run the Go test suite with the race detector and coverage"
+depends = ["l10n-generate"]
 run = "go test -race -timeout 30s ./... -coverprofile=cover.out"
+
+[tasks.l10n-generate]
+description = "Generate client-side localization build artifacts"
+run = "go generate ./l10n/..."
 
 [tasks.vet]
 description = "Run go vet"
+depends = ["l10n-generate"]
 run = "go vet ./..."
 
 [tasks.vulncheck]
 description = "Scan for known Go vulnerabilities"
+depends = ["l10n-generate"]
 run = "govulncheck ./..."
 
 [tasks.fmt]
 description = "Format Go sources"
+depends = ["l10n-generate"]
 run = "go fmt ./..."
 
 [tasks.fmt-check]
@@ -48,14 +57,17 @@ run = "oxfmt --check ."
 
 [tasks.lint]
 description = "Run golangci-lint"
+depends = ["l10n-generate"]
 run = "golangci-lint run"
 
 [tasks.lint-fix]
 description = "Run golangci-lint with automatic fixes"
+depends = ["l10n-generate"]
 run = "golangci-lint run --fix"
 
 [tasks.tidy-check]
 description = "Verify go.mod and go.sum are tidy"
+depends = ["l10n-generate"]
 run = """
 go mod tidy
 git diff --exit-code go.mod go.sum
@@ -91,7 +103,7 @@ docker compose up --build
 
 [tasks.clean]
 description = "Remove generated build and test artifacts"
-run = "rm -f main.wasm cover.out"
+run = "rm -f main.wasm cover.out l10n/localize.js l10n/localize.min.js l10n/playground.html l10n/supported_locales.go"
 
 [hooks]
 postinstall = "lefthook install"

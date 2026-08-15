@@ -24,6 +24,9 @@ functions, add or update compatibility tests based on:
 - `error-pages/internal/template/template_test.go`
 - `error-pages/templates/html/*.tpl.html`
 
+Localization is synced from `error-pages/l10n`. `l10n/locales.json` and the generator are source;
+Mise and Docker builds generate the ignored localization artifacts automatically.
+
 ## Tooling and validation
 
 Mise is the source of truth for tool versions and development tasks. Run `mise install` after
@@ -34,6 +37,7 @@ Before finishing a change, run the relevant focused tasks and then the full chec
 - Format: `mise run fmt && mise run oxfmt`
 - Formatting checks: `mise run fmt-check && mise run oxfmt-check`
 - Tests: `mise run test`
+- Localization generation: `mise run l10n-generate`
 - Lint and vet: `mise run lint && mise run vet`
 - Dependency scan: `mise run vulncheck`
 - WASM build: `mise run build`

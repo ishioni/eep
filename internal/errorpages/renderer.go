@@ -7,11 +7,20 @@ type Renderer struct {
 	templates map[Format]*Template
 }
 
+// RendererOptions contains plugin-instance values exposed through template functions.
+type RendererOptions struct {
+	Version            string
+	LocalizationScript string
+}
+
 // NewRenderer parses the supplied templates and returns a renderer ready for concurrent use.
-func NewRenderer(sources map[Format][]byte, version string) (*Renderer, error) {
+func NewRenderer(sources map[Format][]byte, options RendererOptions) (*Renderer, error) {
+	dependencies := defaultTemplateDependencies()
+	dependencies.localizationScript = options.LocalizationScript
+
 	templates := make(map[Format]*Template, len(sources))
 	for format, source := range sources {
-		parsed, err := NewTemplate(source, version)
+		parsed, err := newTemplate(source, options.Version, dependencies)
 		if err != nil {
 			return nil, fmt.Errorf("initialize %s template: %w", format.ContentType(), err)
 		}

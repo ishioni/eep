@@ -1,0 +1,5 @@
+## Generated build artifacts
+/localize.js
+/localize.min.js
+/playground.html
+/supported_locales.go

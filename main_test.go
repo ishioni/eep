@@ -10,33 +10,35 @@ import (
 func TestPluginContextOwnsRendererAndConfiguration(t *testing.T) {
 	firstRenderer, err := errorpages.NewRenderer(map[errorpages.Format][]byte{
 		errorpages.HTMLFormat: []byte("first"),
-	}, "test-version")
+	}, errorpages.RendererOptions{Version: "test-version"})
 	if err != nil {
 		t.Fatalf("create first renderer: %v", err)
 	}
 	secondRenderer, err := errorpages.NewRenderer(map[errorpages.Format][]byte{
 		errorpages.HTMLFormat: []byte("second"),
-	}, "test-version")
+	}, errorpages.RendererOptions{Version: "test-version"})
 	if err != nil {
 		t.Fatalf("create second renderer: %v", err)
 	}
 
 	firstPlugin := &pluginContext{
-		config:   config.Config{ShowDetails: true},
-		renderer: firstRenderer,
+		config:               config.Config{ShowDetails: true, Locale: "auto"},
+		renderer:             firstRenderer,
+		localizationDisabled: false,
 	}
 	secondPlugin := &pluginContext{
-		config:   config.Config{ShowDetails: false},
-		renderer: secondRenderer,
+		config:               config.Config{ShowDetails: false, Locale: "en"},
+		renderer:             secondRenderer,
+		localizationDisabled: true,
 	}
 
 	firstHTTP := firstPlugin.NewHttpContext(1).(*httpContext)
 	secondHTTP := secondPlugin.NewHttpContext(2).(*httpContext)
 
-	if firstHTTP.renderer != firstRenderer || !firstHTTP.showDetails {
+	if firstHTTP.renderer != firstRenderer || !firstHTTP.showDetails || firstHTTP.localizationDisabled {
 		t.Fatal("first HTTP context did not inherit its plugin context state")
 	}
-	if secondHTTP.renderer != secondRenderer || secondHTTP.showDetails {
+	if secondHTTP.renderer != secondRenderer || secondHTTP.showDetails || !secondHTTP.localizationDisabled {
 		t.Fatal("second HTTP context did not inherit its plugin context state")
 	}
 }

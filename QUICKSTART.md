@@ -53,34 +53,38 @@ docker compose down -v
 
 ## Common tasks
 
-| Command                 | Description                           |
-| ----------------------- | ------------------------------------- |
-| `mise tasks`            | List project tasks                    |
-| `mise run build`        | Build the WASM release artifact       |
-| `mise run test`         | Run Go tests with race detection      |
-| `mise run smoke`        | Run the Envoy integration smoke test  |
-| `mise run lint`         | Run golangci-lint                     |
-| `mise run fmt`          | Format Go code                        |
-| `mise run oxfmt`        | Format supported non-Go files         |
-| `mise run docker-build` | Build the scratch OCI artifact        |
-| `mise run clean`        | Remove generated build/test artifacts |
+| Command                  | Description                           |
+| ------------------------ | ------------------------------------- |
+| `mise tasks`             | List project tasks                    |
+| `mise run build`         | Build the WASM release artifact       |
+| `mise run test`          | Run Go tests with race detection      |
+| `mise run l10n-generate` | Generate localization build artifacts |
+| `mise run smoke`         | Run the Envoy integration smoke test  |
+| `mise run lint`          | Run golangci-lint                     |
+| `mise run fmt`           | Format Go code                        |
+| `mise run oxfmt`         | Format supported non-Go files         |
+| `mise run docker-build`  | Build the scratch OCI artifact        |
+| `mise run clean`         | Remove generated build/test artifacts |
 
 ## Customize a template or configuration
 
-Built-in HTML themes live under `templates/html/*.tpl.html`. Select a theme at deployment time with
-JSON plugin configuration; eep defaults to `connection` and shows request details by default:
+Built-in HTML themes live under `templates/html/*.tpl.html`. Select a theme and locale at deployment
+time with JSON plugin configuration. Eep defaults to the `connection` theme, hides request details,
+and selects the HTML locale from browser preferences:
 
 ```json
 {
   "theme": "connection",
-  "showDetails": false
+  "showDetails": false,
+  "locale": "auto"
 }
 ```
 
 For direct Envoy, place that JSON in the Wasm filter's `google.protobuf.StringValue` configuration.
 For Envoy Gateway, use it under `EnvoyExtensionPolicy.spec.wasm[].config`. See the configuration
 examples in the [README](README.md#configuration). `showDetails` is `false` by default; enable it only
-when exposing request metadata is intentional.
+when exposing request metadata is intentional. Set `locale` to `auto`, English, or a supported translated
+locale such as `pl`.
 
 After editing a template, run:
 

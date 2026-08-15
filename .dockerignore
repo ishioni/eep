@@ -17,3 +17,7 @@ CHANGELOG.md
 TODO.md
 AGENTS.md
 docs
+l10n/localize.js
+l10n/localize.min.js
+l10n/playground.html
+l10n/supported_locales.go

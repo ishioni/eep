@@ -22,12 +22,16 @@ import (
 	"io"
 )
 
-const defaultTheme = "connection"
+const (
+	defaultTheme  = "connection"
+	defaultLocale = "auto"
+)
 
 // Config represents eep's plugin configuration.
 type Config struct {
 	Theme       string `json:"theme"`
 	ShowDetails bool   `json:"showDetails"`
+	Locale      string `json:"locale"`
 }
 
 // Default returns the configuration used when the host does not provide plugin configuration.
@@ -35,6 +39,7 @@ func Default() Config {
 	return Config{
 		Theme:       defaultTheme,
 		ShowDetails: false,
+		Locale:      defaultLocale,
 	}
 }
 
@@ -53,6 +58,7 @@ func Parse(content []byte) (*Config, error) {
 	var raw struct {
 		Theme       *string `json:"theme"`
 		ShowDetails *bool   `json:"showDetails"`
+		Locale      *string `json:"locale"`
 	}
 
 	decoder := json.NewDecoder(bytes.NewReader(content))
@@ -72,6 +78,12 @@ func Parse(content []byte) (*Config, error) {
 	}
 	if raw.ShowDetails != nil {
 		cfg.ShowDetails = *raw.ShowDetails
+	}
+	if raw.Locale != nil {
+		if *raw.Locale == "" {
+			return nil, fmt.Errorf("plugin configuration field %q must not be empty", "locale")
+		}
+		cfg.Locale = *raw.Locale
 	}
 
 	return &cfg, nil
