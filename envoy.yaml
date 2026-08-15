@@ -41,7 +41,7 @@ static_resources:
                           value: |
                             {
                               "theme": "ghost",
-                              "showDetails": true
+                              "showDetails": false
                             }
                         vm_config:
                           runtime: "envoy.wasm.runtime.v8"
