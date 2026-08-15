@@ -130,19 +130,19 @@ provided, it uses the following defaults:
 ```json
 {
   "theme": "connection",
-  "showDetails": true
+  "showDetails": false
 }
 ```
 
 | Field         | Type    | Default      | Description                                                                                     |
 | ------------- | ------- | ------------ | ----------------------------------------------------------------------------------------------- |
 | `theme`       | string  | `connection` | Built-in HTML theme name from `templates/html/` (for example `connection`, `cats`, or `ghost`). |
-| `showDetails` | boolean | `true`       | Whether rendered responses include request metadata.                                            |
+| `showDetails` | boolean | `false`      | Whether rendered responses include request metadata.                                            |
 
 Unknown fields, malformed JSON, an empty theme, or a theme that is not embedded in the module cause
-plugin startup to fail rather than silently serving an unexpected page. `showDetails` exposes request
-metadata such as the host, URI, forwarded-for value, Kubernetes service identifiers, and request ID;
-set it to `false` for public-facing error responses unless that information is intended to be visible.
+plugin startup to fail rather than silently serving an unexpected page. When enabled, `showDetails`
+exposes request metadata such as the host, URI, forwarded-for value, Kubernetes service identifiers, and
+request ID; keep it `false` for public-facing error responses unless that information is intended to be visible.
 
 ### Using Envoy Directly
 

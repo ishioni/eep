@@ -34,7 +34,7 @@ type Config struct {
 func Default() Config {
 	return Config{
 		Theme:       defaultTheme,
-		ShowDetails: true,
+		ShowDetails: false,
 	}
 }
 

@@ -73,14 +73,14 @@ JSON plugin configuration; eep defaults to `connection` and shows request detail
 ```json
 {
   "theme": "connection",
-  "showDetails": true
+  "showDetails": false
 }
 ```
 
 For direct Envoy, place that JSON in the Wasm filter's `google.protobuf.StringValue` configuration.
 For Envoy Gateway, use it under `EnvoyExtensionPolicy.spec.wasm[].config`. See the configuration
-examples in the [README](README.md#configuration). Set `showDetails` to `false` for public-facing
-responses unless exposing request metadata is intentional.
+examples in the [README](README.md#configuration). `showDetails` is `false` by default; enable it only
+when exposing request metadata is intentional.
 
 After editing a template, run:
 

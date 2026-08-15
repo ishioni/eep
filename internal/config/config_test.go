@@ -26,11 +26,19 @@ func TestParse(t *testing.T) {
 			content: `{"theme":"ghost"}`,
 			want: Config{
 				Theme:       "ghost",
+				ShowDetails: false,
+			},
+		},
+		{
+			name:    "show details can be enabled",
+			content: `{"showDetails":true}`,
+			want: Config{
+				Theme:       "connection",
 				ShowDetails: true,
 			},
 		},
 		{
-			name:    "show details can be disabled",
+			name:    "show details can be disabled explicitly",
 			content: `{"showDetails":false}`,
 			want: Config{
 				Theme:       "connection",
