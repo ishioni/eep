@@ -15,7 +15,7 @@
 package main
 
 import (
-	_ "embed"
+	"errors"
 
 	"github.com/ishioni/eep/internal/config"
 	"github.com/ishioni/eep/internal/errorpages"
@@ -27,9 +27,6 @@ import (
 
 // version is set at compile time via ldflags
 var version = "dev"
-
-//go:embed config.yaml
-var configYAML []byte
 
 // Global handlers and config initialized at plugin start.
 var (
@@ -67,24 +64,23 @@ func (ctx *pluginContext) NewHttpContext(contextID uint32) types.HttpContext {
 func (ctx *pluginContext) OnPluginStart(pluginConfigurationSize int) types.OnPluginStartStatus {
 	proxywasm.LogInfo("eep initialized (version: " + version + ")")
 
-	// Parse configuration
-	var err error
-	pluginConfig, err = config.Parse(configYAML)
-	if err != nil {
-		proxywasm.LogCriticalf("Failed to parse config.yaml: %v", err)
+	pluginConfiguration, err := proxywasm.GetPluginConfiguration()
+	if err != nil && !errors.Is(err, types.ErrorStatusNotFound) {
+		proxywasm.LogCriticalf("failed to read plugin configuration: %v", err)
 		return types.OnPluginStartStatusFailed
 	}
 
-	// Select template based on theme configuration
+	pluginConfig, err = config.Parse(pluginConfiguration)
+	if err != nil {
+		proxywasm.LogCriticalf("failed to parse JSON plugin configuration: %v", err)
+		return types.OnPluginStartStatusFailed
+	}
+
+	// Validate the configured theme at startup rather than silently serving a different theme.
 	templateBytes, err := templates.GetTemplate(pluginConfig.Theme)
 	if err != nil {
-		proxywasm.LogWarnf("Theme '%s' not found, falling back to 'app-down'", pluginConfig.Theme)
-		templateBytes, err = templates.GetTemplate("app-down")
-		if err != nil {
-			proxywasm.LogCriticalf("Failed to load fallback template: %v", err)
-			return types.OnPluginStartStatusFailed
-		}
-		pluginConfig.Theme = "app-down"
+		proxywasm.LogCriticalf("failed to load configured theme %q: %v", pluginConfig.Theme, err)
+		return types.OnPluginStartStatusFailed
 	}
 
 	formatTemplates := []struct {

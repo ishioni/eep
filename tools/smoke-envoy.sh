@@ -39,11 +39,16 @@ done
 response_body=$(mktemp)
 response_headers=$(mktemp)
 
-assert_error_response '*/*' 'text/html; charset=utf-8' '<title>404 | Not Found</title>' 404
+assert_error_response '*/*' 'text/html; charset=utf-8' '<title>404: Not Found</title>' 404
 assert_error_response 'application/json' 'application/json; charset=utf-8' '"error": true' 404
 assert_error_response 'application/xml' 'application/xml; charset=utf-8' '<error>' 404
 assert_error_response 'text/plain' 'text/plain; charset=utf-8' 'Error 404: Not Found' 404
-assert_error_response 'text/html' 'text/html; charset=utf-8' '<title>500 | Internal Server Error</title>' 500
+assert_error_response 'text/html' 'text/html; charset=utf-8' '<title>500: Internal Server Error</title>' 500
+
+if grep -Fq 'Original URI' "${response_body}"; then
+    echo "request details were rendered despite showDetails=false" >&2
+    exit 1
+fi
 
 if docker compose logs envoy | grep -Eiq 'missing import|failed to load wasm|failed to render'; then
     docker compose logs envoy

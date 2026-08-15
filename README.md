@@ -1,12 +1,14 @@
 # eep
 
-**eep** (Envoy Error Pages) is an Envoy Proxy-Wasm extension written in Go that intercepts backend error responses (4xx and 5xx status codes) and replaces them with custom HTML error pages.
+**eep** (Envoy Error Pages) is an Envoy Proxy-Wasm extension written in Go that intercepts backend error responses (4xx and 5xx status codes) and replaces them with custom HTML, JSON, XML, or plain-text error pages.
 
 ## Features
 
 - **Automatic Error Interception**: Detects and handles all 4xx and 5xx HTTP status codes
-- **Custom Error Pages**: Provides distinct error pages for client errors (4xx) and server errors (5xx)
-- **Template-Based Design**: HTML error pages are stored in separate files for easy customization without Go knowledge
+- **Content Negotiation**: Responds with HTML, JSON, XML, or plain text according to the request's `Accept` header
+- **Custom Error Pages**: Provides error pages for all client errors (4xx) and server errors (5xx)
+- **Template-Based Design**: Built-in response templates are stored in separate files for easy customization without Go knowledge
+- **Runtime Configuration**: Select the HTML theme and request-detail visibility through the host's plugin configuration
 - **Version Tracking**: Automatically embeds the git commit SHA into the plugin for easy version identification
 - **Lightweight**: Compiled to WASM for minimal overhead
 
@@ -120,10 +122,58 @@ docker rm eep-extract
 
 This extension requires Envoy `v1.39.0` or later. Envoy Gateway users require `v1.9.0` or later when using its default Envoy image.
 
+### Configuration
+
+Eep accepts a strict JSON object through the Proxy-Wasm plugin configuration. If no configuration is
+provided, it uses the following defaults:
+
+```json
+{
+  "theme": "connection",
+  "showDetails": true
+}
+```
+
+| Field         | Type    | Default      | Description                                                                                     |
+| ------------- | ------- | ------------ | ----------------------------------------------------------------------------------------------- |
+| `theme`       | string  | `connection` | Built-in HTML theme name from `templates/html/` (for example `connection`, `cats`, or `ghost`). |
+| `showDetails` | boolean | `true`       | Whether rendered responses include request metadata.                                            |
+
+Unknown fields, malformed JSON, an empty theme, or a theme that is not embedded in the module cause
+plugin startup to fail rather than silently serving an unexpected page. `showDetails` exposes request
+metadata such as the host, URI, forwarded-for value, Kubernetes service identifiers, and request ID;
+set it to `false` for public-facing error responses unless that information is intended to be visible.
+
 ### Using Envoy Directly
 
-1. Extract the WASM file (see above)
-2. Run Envoy with the provided configuration:
+1. Extract the WASM file (see above).
+2. Configure the Wasm filter's `configuration` as a `google.protobuf.StringValue`. Its `value` is the
+   JSON passed to eep:
+
+```yaml
+name: envoy.filters.http.wasm
+typed_config:
+  "@type": type.googleapis.com/envoy.extensions.filters.http.wasm.v3.Wasm
+  config:
+    name: eep
+    configuration:
+      "@type": type.googleapis.com/google.protobuf.StringValue
+      value: |
+        {
+          "theme": "connection",
+          "showDetails": false
+        }
+    vm_config:
+      runtime: envoy.wasm.runtime.v8
+      code:
+        local:
+          filename: /etc/envoy/plugin.wasm
+```
+
+The repository's [`envoy.yaml`](envoy.yaml) is a complete local development example. It deliberately
+selects `ghost` and disables details so the smoke test verifies that the configuration is consumed.
+For a release-image Docker Compose deployment, see [`examples/docker`](examples/docker). Run the local
+configuration with:
 
 ```bash
 docker run --rm -it \
@@ -133,6 +183,40 @@ docker run --rm -it \
   envoyproxy/envoy:v1.39.0 \
   -c /etc/envoy/envoy.yaml
 ```
+
+### Using Envoy Gateway
+
+Use `EnvoyExtensionPolicy.spec.wasm[].config` for ordinary eep configuration. Envoy Gateway serializes
+this object to JSON and supplies it as the plugin configuration. `env.hostKeys` only forwards existing
+Envoy-process environment variables and is not needed for theme or detail settings.
+
+```yaml
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: EnvoyExtensionPolicy
+metadata:
+  name: eep
+  namespace: network
+spec:
+  targetSelectors:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      matchLabels:
+        role: production
+  wasm:
+    - name: eep
+      rootID: eep
+      code:
+        type: Image
+        image:
+          url: oci://ghcr.io/ishioni/eep:v0.1.0
+      config:
+        theme: connection
+        showDetails: false
+```
+
+`rootID` identifies the extension's root context and must be unique among Wasm extensions attached to
+the same Envoy instance. A ready-to-adapt policy is available in
+[`examples/kubernetes/envoy-gateway`](examples/kubernetes/envoy-gateway).
 
 ## Testing
 
@@ -178,9 +262,9 @@ You can also access the Envoy admin interface at http://localhost:9901
 The built-in error page templates are copied from the sibling `error-pages` project and stored under `templates/`:
 
 - `templates/html/*.tpl.html` - Built-in HTML themes selected by `theme`
-- `templates/default.tpl.json` - Default JSON response template, reserved for content negotiation work
-- `templates/default.tpl.xml` - Default XML response template, reserved for content negotiation work
-- `templates/default.tpl.txt` - Default plain text response template, reserved for content negotiation work
+- `templates/default.tpl.json` - Default JSON response template
+- `templates/default.tpl.xml` - Default XML response template
+- `templates/default.tpl.txt` - Default plain-text response template
 
 You can edit these template files directly. They are embedded into the WASM binary at compile time using Go's `embed` package, so after editing them, you'll need to rebuild:
 
@@ -231,7 +315,6 @@ Modify the `IsErrorStatus()` function in `internal/errorpages/errorpages.go` to 
 ```
 .
 ├── main.go                    # Entry point and WASM contexts
-├── config.yaml                # Configuration file (reserved for future use)
 ├── internal/                  # Internal packages
 │   └── errorpages/           # Error page handling
 │       └── errorpages.go
@@ -256,7 +339,7 @@ Modify the `IsErrorStatus()` function in `internal/errorpages/errorpages.go` to 
 - `vmContext`: VM-level context for the plugin
 - `pluginContext`: Plugin-level context, handles initialization
 - `httpContext`: HTTP request/response context, handles error interception
-- `error4xxHTML` / `error5xxHTML`: Embedded HTML templates
+- runtime configuration is read from the Proxy-Wasm host during plugin startup
 
 **Internal Packages:**
 

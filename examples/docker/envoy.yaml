@@ -1,3 +1,4 @@
+---
 admin:
   address:
     socket_address:
@@ -6,7 +7,7 @@ admin:
 
 static_resources:
   listeners:
-    - name: listener_0
+    - name: http
       address:
         socket_address:
           address: 0.0.0.0
@@ -17,7 +18,6 @@ static_resources:
               typed_config:
                 "@type": type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
                 stat_prefix: ingress_http
-                codec_type: AUTO
                 route_config:
                   name: local_route
                   virtual_hosts:
@@ -28,27 +28,24 @@ static_resources:
                             prefix: "/"
                           route:
                             cluster: http_debug
-                            timeout: 30s
                 http_filters:
-                  # WASM error pages plugin
                   - name: envoy.filters.http.wasm
                     typed_config:
                       "@type": type.googleapis.com/envoy.extensions.filters.http.wasm.v3.Wasm
                       config:
-                        name: "error_pages"
+                        name: eep
                         configuration:
                           "@type": type.googleapis.com/google.protobuf.StringValue
                           value: |
                             {
-                              "theme": "ghost",
-                              "showDetails": true
+                              "theme": "connection",
+                              "showDetails": false
                             }
                         vm_config:
-                          runtime: "envoy.wasm.runtime.v8"
+                          runtime: envoy.wasm.runtime.v8
                           code:
                             local:
-                              filename: "/etc/envoy/wasm/plugin.wasm"
-                  # Router must be last
+                              filename: /etc/envoy/plugin.wasm
                   - name: envoy.filters.http.router
                     typed_config:
                       "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
@@ -56,7 +53,6 @@ static_resources:
   clusters:
     - name: http_debug
       type: STRICT_DNS
-      lb_policy: ROUND_ROBIN
       connect_timeout: 5s
       load_assignment:
         cluster_name: http_debug

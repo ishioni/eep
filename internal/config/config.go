@@ -12,47 +12,80 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package config parses the JSON configuration passed to eep by the Proxy-Wasm host.
 package config
 
 import (
-	"strings"
+	"bytes"
+	"encoding/json"
+	"fmt"
+	"io"
 )
 
-// Config represents the plugin configuration
+const defaultTheme = "connection"
+
+// Config represents eep's plugin configuration.
 type Config struct {
-	Theme       string
-	ShowDetails bool
+	Theme       string `json:"theme"`
+	ShowDetails bool   `json:"showDetails"`
 }
 
-// Parse parses the configuration from YAML content
-func Parse(yamlContent []byte) (*Config, error) {
-	cfg := &Config{
-		Theme:       "cats", // Default to cats theme
-		ShowDetails: true,   // Default to true
+// Default returns the configuration used when the host does not provide plugin configuration.
+func Default() Config {
+	return Config{
+		Theme:       defaultTheme,
+		ShowDetails: true,
+	}
+}
+
+// Parse parses a JSON plugin configuration. Empty configuration uses Default. Unknown fields are
+// rejected so policy mistakes do not silently change the resulting error pages.
+func Parse(content []byte) (*Config, error) {
+	cfg := Default()
+	content = bytes.TrimSpace(content)
+	if len(content) == 0 {
+		return &cfg, nil
+	}
+	if content[0] != '{' {
+		return nil, fmt.Errorf("plugin configuration must be a JSON object")
 	}
 
-	// Simple YAML parser for show_details field
-	lines := strings.Split(string(yamlContent), "\n")
-	for _, line := range lines {
-		line = strings.TrimSpace(line)
-
-		// Skip comments and empty lines
-		if strings.HasPrefix(line, "#") || line == "" {
-			continue
-		}
-
-		// Parse theme
-		if strings.HasPrefix(line, "theme:") {
-			value := strings.TrimSpace(strings.TrimPrefix(line, "theme:"))
-			cfg.Theme = value
-		}
-
-		// Parse show_details
-		if strings.HasPrefix(line, "show_details:") {
-			value := strings.TrimSpace(strings.TrimPrefix(line, "show_details:"))
-			cfg.ShowDetails = value == "true"
-		}
+	var raw struct {
+		Theme       *string `json:"theme"`
+		ShowDetails *bool   `json:"showDetails"`
 	}
 
-	return cfg, nil
+	decoder := json.NewDecoder(bytes.NewReader(content))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&raw); err != nil {
+		return nil, fmt.Errorf("decode plugin configuration: %w", err)
+	}
+	if err := ensureEOF(decoder); err != nil {
+		return nil, err
+	}
+
+	if raw.Theme != nil {
+		if *raw.Theme == "" {
+			return nil, fmt.Errorf("plugin configuration field %q must not be empty", "theme")
+		}
+		cfg.Theme = *raw.Theme
+	}
+	if raw.ShowDetails != nil {
+		cfg.ShowDetails = *raw.ShowDetails
+	}
+
+	return &cfg, nil
+}
+
+func ensureEOF(decoder *json.Decoder) error {
+	var extra any
+	if err := decoder.Decode(&extra); err != io.EOF {
+		if err == nil {
+			return fmt.Errorf("decode plugin configuration: multiple JSON values")
+		}
+
+		return fmt.Errorf("decode plugin configuration: %w", err)
+	}
+
+	return nil
 }

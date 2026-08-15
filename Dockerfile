@@ -13,7 +13,7 @@ WORKDIR /workspace
 COPY go.mod go.sum ./
 RUN go mod download
 
-COPY main.go config.yaml ./
+COPY main.go ./
 COPY internal/ internal/
 COPY templates/ templates/
 

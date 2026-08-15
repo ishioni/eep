@@ -1,0 +1,26 @@
+---
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: EnvoyExtensionPolicy
+metadata:
+  name: eep
+  namespace: network
+spec:
+  targetSelectors:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      matchLabels:
+        role: production
+  wasm:
+    - name: eep
+      # Must be unique among Wasm extensions attached to the same Envoy instance.
+      rootID: eep
+      code:
+        type: Image
+        image:
+          # Replace this tag with the desired released eep version.
+          url: oci://ghcr.io/ishioni/eep:v0.1.0
+      # Envoy Gateway serializes this object as JSON for the Wasm plugin.
+      config:
+        theme: connection
+        showDetails: false
+      failOpen: false
