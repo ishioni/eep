@@ -16,7 +16,7 @@
 - Docker with Compose v2
 - Git
 
-Install the pinned Go and project tools, including `wasm-tools`, with:
+Install the pinned Go and project tools with:
 
 ```bash
 mise install
@@ -28,7 +28,7 @@ Tool versions and development tasks are defined in `.mise/config.toml` and locke
 ## Building
 
 ```bash
-# Build, patch, and validate main.wasm
+# Build main.wasm
 mise run build
 
 # Run Go tests with the race detector
@@ -41,12 +41,13 @@ mise run docker-build
 mise tasks
 ```
 
-The Makefile remains as a compatibility wrapper, so `make build`, `make test`, and
-`make docker-build` delegate to the corresponding mise tasks.
+The release artifact is `main.wasm`, produced directly by `mise run build`.
 
-`mise run build-raw` creates `main.raw.wasm` without the Envoy compatibility patch. The release
-artifact is `main.wasm`, produced by the full `mise run build` pipeline. Do not deploy the raw module
-against current Envoy images.
+## Runtime compatibility
+
+Eep requires Envoy Proxy `v1.39.0` or later. It also supports Envoy Gateway `v1.9.0` or later
+when using Gateway's default Envoy image, which is Envoy `v1.39.0`. If you override the Gateway
+Envoy image, use an Envoy `v1.39.0+` image.
 
 ## Response formats
 
@@ -102,8 +103,6 @@ open http://localhost:10000/404
 ### Stopping the Environment
 
 ```bash
-make down
-# or
 docker compose down
 ```
 
@@ -119,7 +118,7 @@ docker rm eep-extract
 
 ## Running with Envoy
 
-This extension requires Envoy >= 1.33.0.
+This extension requires Envoy `v1.39.0` or later. Envoy Gateway users require `v1.9.0` or later when using its default Envoy image.
 
 ### Using Envoy Directly
 
@@ -131,7 +130,7 @@ docker run --rm -it \
   -v $(pwd)/envoy.yaml:/etc/envoy/envoy.yaml \
   -v $(pwd)/plugin.wasm:/etc/envoy/plugin.wasm \
   -p 10000:10000 \
-  envoyproxy/envoy:v1.33.0 \
+  envoyproxy/envoy:v1.39.0 \
   -c /etc/envoy/envoy.yaml
 ```
 
@@ -241,7 +240,7 @@ Modify the `IsErrorStatus()` function in `internal/errorpages/errorpages.go` to 
 │   ├── default.tpl.txt       # Default plain text response template
 │   ├── default.tpl.xml       # Default XML response template
 │   └── html/                 # Built-in HTML themes copied from error-pages
-├── Makefile                   # Build automation
+
 ├── Dockerfile                 # Multi-stage Docker build
 ├── Dockerfile.debug           # Debug build configuration
 ├── docker-compose.yaml        # Local testing setup

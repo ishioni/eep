@@ -12,7 +12,7 @@
 mise install
 ```
 
-This installs the exact Go, `wasm-tools`, formatting, linting, and workflow-audit versions locked in
+This installs the exact Go, formatting, linting, and workflow-audit versions locked in
 `.mise/mise.lock`.
 
 ## Build the plugin
@@ -21,10 +21,8 @@ This installs the exact Go, `wasm-tools`, formatting, linting, and workflow-audi
 mise run build
 ```
 
-The build pipeline produces:
-
-- `main.raw.wasm`: unpatched Go WASI module, retained for compatibility testing;
-- `main.wasm`: patched and validated module for current Envoy images.
+The build produces `main.wasm`, the release artifact for Envoy Proxy `v1.39.0+` and Envoy Gateway
+`v1.9.0+` when using its default Envoy image.
 
 ## Test through Envoy
 
@@ -58,7 +56,7 @@ docker compose down -v
 | Command                 | Description                           |
 | ----------------------- | ------------------------------------- |
 | `mise tasks`            | List project tasks                    |
-| `mise run build`        | Build, patch, and validate WASM       |
+| `mise run build`        | Build the WASM release artifact       |
 | `mise run test`         | Run Go tests with race detection      |
 | `mise run smoke`        | Run the Envoy integration smoke test  |
 | `mise run lint`         | Run golangci-lint                     |
@@ -66,9 +64,6 @@ docker compose down -v
 | `mise run oxfmt`        | Format supported non-Go files         |
 | `mise run docker-build` | Build the scratch OCI artifact        |
 | `mise run clean`        | Remove generated build/test artifacts |
-
-The Makefile remains a compatibility wrapper for common commands such as `make build`, `make test`,
-and `make docker-build`.
 
 ## Customize a template
 
@@ -108,7 +103,6 @@ Verify local tooling and tasks:
 ```bash
 mise doctor
 mise tasks
-wasm-tools --version
 ```
 
 If ports `10000`, `9901`, or `8080` are already in use, stop the conflicting service or adjust
