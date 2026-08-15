@@ -27,6 +27,7 @@ func TestParse(t *testing.T) {
 			want: Config{
 				Theme:       "ghost",
 				ShowDetails: false,
+				Locale:      "auto",
 			},
 		},
 		{
@@ -35,6 +36,7 @@ func TestParse(t *testing.T) {
 			want: Config{
 				Theme:       "connection",
 				ShowDetails: true,
+				Locale:      "auto",
 			},
 		},
 		{
@@ -43,14 +45,16 @@ func TestParse(t *testing.T) {
 			want: Config{
 				Theme:       "connection",
 				ShowDetails: false,
+				Locale:      "auto",
 			},
 		},
 		{
 			name:    "full configuration",
-			content: `{"theme":"l7","showDetails":true}`,
+			content: `{"theme":"l7","showDetails":true,"locale":"pl"}`,
 			want: Config{
 				Theme:       "l7",
 				ShowDetails: true,
+				Locale:      "pl",
 			},
 		},
 		{
@@ -71,6 +75,11 @@ func TestParse(t *testing.T) {
 		{
 			name:    "empty theme",
 			content: `{"theme":""}`,
+			wantErr: "must not be empty",
+		},
+		{
+			name:    "empty locale",
+			content: `{"locale":""}`,
 			wantErr: "must not be empty",
 		},
 		{

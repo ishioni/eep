@@ -23,4 +23,5 @@ spec:
       config:
         theme: connection
         showDetails: false
+        locale: auto
       failOpen: false

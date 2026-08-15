@@ -10,15 +10,17 @@ namespace. It requires Envoy Gateway `v1.9.0+`, whose default Envoy image is com
 2. Review `config.showDetails`. When enabled, eep includes request metadata such as host, URI,
    forwarded-for values, service identifiers, and request IDs in error responses. Keep it `false`
    for public-facing gateways unless that disclosure is intentional.
-3. Apply the policy:
+3. Set `config.locale` to `auto`, English, or a supported translated locale such as `pl`.
+4. Apply the policy:
 
    ```sh
    kubectl apply --filename eep.yaml
    ```
 
 `spec.wasm[].config` is the configuration channel for eep. Envoy Gateway serializes the YAML object
-as JSON and eep receives it during plugin startup. Do not use `env.hostKeys` for `theme` or
-`showDetails`; it is only for forwarding existing environment variables from the Envoy process.
+as JSON and eep receives it during plugin startup. Do not use `env.hostKeys` for `theme`,
+`showDetails`, or `locale`; it is only for forwarding existing environment variables from the Envoy
+process.
 
 `rootID` identifies the Wasm extension's root context. It must be unique among Wasm extensions loaded
 into the same Envoy instance.

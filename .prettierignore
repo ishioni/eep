@@ -3,5 +3,9 @@ CHANGELOG.md
 .release-please-manifest.json
 TODO.md
 templates/**
+l10n/generate/templates/**
+l10n/localize.js
+l10n/localize.min.js
+l10n/playground.html
 *.wasm
 *.wat
