@@ -31,10 +31,10 @@ var version = "dev"
 //go:embed config.yaml
 var configYAML []byte
 
-// Global handlers and config initialized at plugin start
+// Global handlers and config initialized at plugin start.
 var (
-	errorPageHandler *errorpages.Handler
-	pluginConfig     *config.Config
+	errorPageHandlers map[errorpages.Format]*errorpages.Handler
+	pluginConfig      *config.Config
 )
 
 func main() {}
@@ -87,14 +87,28 @@ func (ctx *pluginContext) OnPluginStart(pluginConfigurationSize int) types.OnPlu
 		pluginConfig.Theme = "app-down"
 	}
 
-	// Initialize error page handler with selected template
-	errorPageHandler, err = errorpages.NewWithTemplate(templateBytes, version)
-	if err != nil {
-		proxywasm.LogCriticalf("Failed to parse template: %v", err)
-		return types.OnPluginStartStatusFailed
+	formatTemplates := []struct {
+		format   errorpages.Format
+		template []byte
+	}{
+		{format: errorpages.HTMLFormat, template: templateBytes},
+		{format: errorpages.JSONFormat, template: []byte(templates.JSON)},
+		{format: errorpages.XMLFormat, template: []byte(templates.XML)},
+		{format: errorpages.PlainTextFormat, template: []byte(templates.PlainText)},
 	}
 
-	proxywasm.LogInfof("Error page template loaded: theme=%s, show_details=%v", pluginConfig.Theme, pluginConfig.ShowDetails)
+	errorPageHandlers = make(map[errorpages.Format]*errorpages.Handler, len(formatTemplates))
+	for _, entry := range formatTemplates {
+		handler, handlerErr := errorpages.NewWithTemplate(entry.template, version)
+		if handlerErr != nil {
+			proxywasm.LogCriticalf("failed to initialize %s error page template: %v", entry.format.ContentType(), handlerErr)
+			return types.OnPluginStartStatusFailed
+		}
+
+		errorPageHandlers[entry.format] = handler
+	}
+
+	proxywasm.LogInfof("error page templates loaded: theme=%s, show_details=%v", pluginConfig.Theme, pluginConfig.ShowDetails)
 	return types.OnPluginStartStatusOK
 }
 
@@ -103,6 +117,7 @@ type httpContext struct {
 	types.DefaultHttpContext
 
 	shouldReplaceBody bool
+	responseFormat    errorpages.Format
 	statusCode        string
 	// Request data for template rendering. Ingress metadata follows the
 	// ingress-nginx custom errors header convention used by the upstream
@@ -119,6 +134,11 @@ type httpContext struct {
 
 // OnHttpRequestHeaders implements types.HttpContext.
 func (ctx *httpContext) OnHttpRequestHeaders(numHeaders int, endOfStream bool) types.Action {
+	ctx.responseFormat = errorpages.HTMLFormat
+	if accept, err := proxywasm.GetHttpRequestHeader("accept"); err == nil {
+		ctx.responseFormat = errorpages.FormatFromAccept(accept)
+	}
+
 	// Capture request data for error page rendering
 	if host, err := proxywasm.GetHttpRequestHeader(":authority"); err == nil {
 		ctx.host = host
@@ -171,9 +191,14 @@ func (ctx *httpContext) OnHttpResponseHeaders(numHeaders int, endOfStream bool) 
 
 	// Check if this is a 4xx or 5xx error
 	if errorpages.IsErrorStatus(status) {
+		if _, ok := errorPageHandlers[ctx.responseFormat]; !ok {
+			proxywasm.LogErrorf("no error page handler for response format %q", ctx.responseFormat.ContentType())
+			return types.ActionContinue
+		}
+
 		ctx.shouldReplaceBody = true
 		ctx.statusCode = status
-		proxywasm.LogInfof("intercepting error response: %s", status)
+		proxywasm.LogInfof("intercepting error response: %s as %s", status, ctx.responseFormat.ContentType())
 
 		// Remove headers that could conflict with our custom error page.
 		for _, header := range []string{"content-length", "content-encoding", "content-type"} {
@@ -182,8 +207,7 @@ func (ctx *httpContext) OnHttpResponseHeaders(numHeaders int, endOfStream bool) 
 			}
 		}
 
-		// Set content type for our HTML error page.
-		if err := proxywasm.AddHttpResponseHeader("content-type", "text/html; charset=utf-8"); err != nil {
+		if err := proxywasm.AddHttpResponseHeader("content-type", ctx.responseFormat.ContentType()); err != nil {
 			proxywasm.LogWarnf("failed to set error page content type: %v", err)
 		}
 	}
@@ -225,8 +249,14 @@ func (ctx *httpContext) OnHttpResponseBody(bodySize int, endOfStream bool) types
 		RequestID:    ctx.requestID,
 	}
 
-	// Render the error page with template
-	errorPage, err := errorPageHandler.RenderErrorPage(templateData)
+	// Render the error page with the negotiated template.
+	handler := errorPageHandlers[ctx.responseFormat]
+	if handler == nil {
+		proxywasm.LogErrorf("no error page handler for response format %q", ctx.responseFormat.ContentType())
+		return types.ActionContinue
+	}
+
+	errorPage, err := handler.RenderErrorPage(templateData)
 	if err != nil {
 		proxywasm.LogErrorf("failed to render error page: %v", err)
 		return types.ActionContinue
