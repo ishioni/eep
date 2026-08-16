@@ -113,6 +113,7 @@ static_resources:
                               "theme": "ghost",
                               "showDetails": false,
                               "locale": "pl",
+                              "logLevel": "warn",
                               "filterCodes": [404, "500-510"],
                               "excludeDomains": ["^skip\\.example\\.test$"]
                             }

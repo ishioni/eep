@@ -28,11 +28,13 @@ func TestPluginContextOwnsRendererAndConfiguration(t *testing.T) {
 
 	firstPlugin := &pluginContext{
 		config:               config.Config{ShowDetails: true, Locale: "auto"},
+		logLevel:             config.LogLevelWarn,
 		renderer:             firstRenderer,
 		localizationDisabled: false,
 	}
 	secondPlugin := &pluginContext{
 		config:               *secondConfig,
+		logLevel:             secondConfig.LogLevel,
 		filter:               filtering.NewPolicy(secondConfig.FilterCodes, secondConfig.ExcludeDomains),
 		renderer:             secondRenderer,
 		localizationDisabled: true,
@@ -44,7 +46,7 @@ func TestPluginContextOwnsRendererAndConfiguration(t *testing.T) {
 	if firstHTTP.renderer != firstRenderer || !firstHTTP.showDetails || firstHTTP.localizationDisabled {
 		t.Fatal("first HTTP context did not inherit its plugin context state")
 	}
-	if secondHTTP.renderer != secondRenderer || secondHTTP.showDetails || !secondHTTP.localizationDisabled {
+	if secondHTTP.renderer != secondRenderer || secondHTTP.showDetails || !secondHTTP.localizationDisabled || secondHTTP.logLevel != config.LogLevelWarn {
 		t.Fatal("second HTTP context did not inherit its plugin context state")
 	}
 	if !secondHTTP.filter.ShouldHandle(404, "allowed.example") || secondHTTP.filter.ShouldHandle(404, "excluded.example") ||

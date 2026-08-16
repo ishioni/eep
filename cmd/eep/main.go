@@ -16,6 +16,7 @@ package main
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/ishioni/eep/internal/config"
 	"github.com/ishioni/eep/internal/errorpages"
@@ -31,6 +32,31 @@ import (
 var version = "dev"
 
 func main() {}
+
+func logMessage(threshold, level config.LogLevel, message string) {
+	if level != config.LogLevelCritical && !threshold.Allows(level) {
+		return
+	}
+
+	switch level {
+	case config.LogLevelOff:
+		return
+	case config.LogLevelDebug:
+		proxywasm.LogDebug(message)
+	case config.LogLevelInfo:
+		proxywasm.LogInfo(message)
+	case config.LogLevelWarn:
+		proxywasm.LogWarn(message)
+	case config.LogLevelError:
+		proxywasm.LogError(message)
+	case config.LogLevelCritical:
+		proxywasm.LogCritical(message)
+	}
+}
+
+func logMessagef(threshold, level config.LogLevel, format string, args ...interface{}) {
+	logMessage(threshold, level, fmt.Sprintf(format, args...))
+}
 
 func init() {
 	proxywasm.SetVMContext(&vmContext{})
@@ -51,6 +77,7 @@ type pluginContext struct {
 	types.DefaultPluginContext
 
 	config               config.Config
+	logLevel             config.LogLevel
 	filter               filtering.Policy
 	renderer             *errorpages.Renderer
 	localizationDisabled bool
@@ -60,6 +87,7 @@ type pluginContext struct {
 func (ctx *pluginContext) NewHttpContext(contextID uint32) types.HttpContext {
 	return &httpContext{
 		renderer:             ctx.renderer,
+		logLevel:             ctx.logLevel,
 		filter:               ctx.filter,
 		showDetails:          ctx.config.ShowDetails,
 		localizationDisabled: ctx.localizationDisabled,
@@ -68,8 +96,6 @@ func (ctx *pluginContext) NewHttpContext(contextID uint32) types.HttpContext {
 
 // OnPluginStart implements types.PluginContext.
 func (ctx *pluginContext) OnPluginStart(pluginConfigurationSize int) types.OnPluginStartStatus {
-	proxywasm.LogInfo("eep initialized (version: " + version + ")")
-
 	pluginConfiguration, err := proxywasm.GetPluginConfiguration()
 	if err != nil && !errors.Is(err, types.ErrorStatusNotFound) {
 		proxywasm.LogCriticalf("failed to read plugin configuration: %v", err)
@@ -82,16 +108,18 @@ func (ctx *pluginContext) OnPluginStart(pluginConfigurationSize int) types.OnPlu
 		return types.OnPluginStartStatusFailed
 	}
 
+	logMessagef(pluginConfig.LogLevel, config.LogLevelInfo, "eep initialized (version: %s)", version)
+
 	locale, err := l10n.Resolve(pluginConfig.Locale)
 	if err != nil {
-		proxywasm.LogCriticalf("invalid locale configuration: %v", err)
+		logMessagef(pluginConfig.LogLevel, config.LogLevelCritical, "invalid locale configuration: %v", err)
 		return types.OnPluginStartStatusFailed
 	}
 
 	// Validate the configured theme at startup rather than silently serving a different theme.
 	templateBytes, err := templates.GetTemplate(pluginConfig.Theme)
 	if err != nil {
-		proxywasm.LogCriticalf("failed to load configured theme %q: %v", pluginConfig.Theme, err)
+		logMessagef(pluginConfig.LogLevel, config.LogLevelCritical, "failed to load configured theme %q: %v", pluginConfig.Theme, err)
 		return types.OnPluginStartStatusFailed
 	}
 
@@ -105,20 +133,22 @@ func (ctx *pluginContext) OnPluginStart(pluginConfigurationSize int) types.OnPlu
 		LocalizationScript: locale.Script(),
 	})
 	if err != nil {
-		proxywasm.LogCriticalf("failed to initialize error page renderer: %v", err)
+		logMessagef(pluginConfig.LogLevel, config.LogLevelCritical, "failed to initialize error page renderer: %v", err)
 		return types.OnPluginStartStatusFailed
 	}
 
 	ctx.config = *pluginConfig
+	ctx.logLevel = pluginConfig.LogLevel
 	ctx.filter = filtering.NewPolicy(pluginConfig.FilterCodes, pluginConfig.ExcludeDomains)
 	ctx.renderer = renderer
 	ctx.localizationDisabled = locale.Disabled()
 
-	proxywasm.LogInfof(
-		"error page templates loaded: theme=%s, show_details=%v, locale=%s, filter_codes=%d, exclude_domains=%d",
+	logMessagef(ctx.logLevel, config.LogLevelInfo,
+		"error page templates loaded: theme=%s, show_details=%v, locale=%s, log_level=%s, filter_codes=%d, exclude_domains=%d",
 		ctx.config.Theme,
 		ctx.config.ShowDetails,
 		locale.String(),
+		ctx.config.LogLevel.String(),
 		ctx.config.FilterCodes.Len(),
 		ctx.config.ExcludeDomains.Len(),
 	)
@@ -130,6 +160,7 @@ type httpContext struct {
 	types.DefaultHttpContext
 
 	renderer             *errorpages.Renderer
+	logLevel             config.LogLevel
 	filter               filtering.Policy
 	showDetails          bool
 	localizationDisabled bool
@@ -200,32 +231,32 @@ func (ctx *httpContext) OnHttpRequestHeaders(numHeaders int, endOfStream bool) t
 func (ctx *httpContext) OnHttpResponseHeaders(numHeaders int, endOfStream bool) types.Action {
 	status, err := proxywasm.GetHttpResponseHeader(":status")
 	if err != nil {
-		proxywasm.LogWarnf("failed to get status code: %v", err)
+		logMessagef(ctx.logLevel, config.LogLevelWarn, "failed to get status code: %v", err)
 		return types.ActionContinue
 	}
 
-	proxywasm.LogDebugf("response status code: %s", status)
+	logMessagef(ctx.logLevel, config.LogLevelDebug, "response status code: %s", status)
 
 	// Replace selected 4xx and 5xx errors unless the request host is excluded.
 	if statusCode, ok := errorpages.ParseErrorStatus(status); ok && ctx.filter.ShouldHandle(statusCode, ctx.host) {
 		if ctx.renderer == nil || !ctx.renderer.HasFormat(ctx.responseFormat) {
-			proxywasm.LogErrorf("no error page template for response format %q", ctx.responseFormat.ContentType())
+			logMessagef(ctx.logLevel, config.LogLevelError, "no error page template for response format %q", ctx.responseFormat.ContentType())
 			return types.ActionContinue
 		}
 
 		ctx.shouldReplaceBody = true
 		ctx.statusCode = statusCode
-		proxywasm.LogInfof("intercepting error response: %s as %s", status, ctx.responseFormat.ContentType())
+		logMessagef(ctx.logLevel, config.LogLevelInfo, "intercepting error response: %s as %s", status, ctx.responseFormat.ContentType())
 
 		// Remove headers that could conflict with our custom error page.
 		for _, header := range []string{"content-length", "content-encoding", "content-type"} {
 			if err := proxywasm.RemoveHttpResponseHeader(header); err != nil {
-				proxywasm.LogWarnf("failed to remove response header %q: %v", header, err)
+				logMessagef(ctx.logLevel, config.LogLevelWarn, "failed to remove response header %q: %v", header, err)
 			}
 		}
 
 		if err := proxywasm.AddHttpResponseHeader("content-type", ctx.responseFormat.ContentType()); err != nil {
-			proxywasm.LogWarnf("failed to set error page content type: %v", err)
+			logMessagef(ctx.logLevel, config.LogLevelWarn, "failed to set error page content type: %v", err)
 		}
 	}
 
@@ -260,23 +291,23 @@ func (ctx *httpContext) OnHttpResponseBody(bodySize int, endOfStream bool) types
 	}
 
 	if ctx.renderer == nil {
-		proxywasm.LogError("error page renderer is not initialized")
+		logMessage(ctx.logLevel, config.LogLevelError, "error page renderer is not initialized")
 		return types.ActionContinue
 	}
 
 	errorPage, err := ctx.renderer.Render(ctx.responseFormat, templateData)
 	if err != nil {
-		proxywasm.LogErrorf("failed to render error page: %v", err)
+		logMessagef(ctx.logLevel, config.LogLevelError, "failed to render error page: %v", err)
 		return types.ActionContinue
 	}
 
 	// Replace the response body with our custom error page
 	err = proxywasm.ReplaceHttpResponseBody(errorPage)
 	if err != nil {
-		proxywasm.LogErrorf("failed to replace response body: %v", err)
+		logMessagef(ctx.logLevel, config.LogLevelError, "failed to replace response body: %v", err)
 		return types.ActionContinue
 	}
 
-	proxywasm.LogDebugf("replaced error page for status: %d", ctx.statusCode)
+	logMessagef(ctx.logLevel, config.LogLevelDebug, "replaced error page for status: %d", ctx.statusCode)
 	return types.ActionContinue
 }

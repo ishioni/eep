@@ -60,6 +60,7 @@ defaults:
   "theme": "connection",
   "showDetails": false,
   "locale": "auto",
+  "logLevel": "warn",
   "filterCodes": [],
   "excludeDomains": []
 }
@@ -70,12 +71,13 @@ defaults:
 | `theme`          | string  | `connection` | Built-in HTML theme. Available themes are the filenames in [`templates/html`](templates/html) without the `.tpl.html` suffix, for example `connection`, `cats`, and `ghost`.                                |
 | `showDetails`    | boolean | `false`      | Adds request metadata to rendered responses. Keep this disabled for public-facing errors unless exposing the host, URI, forwarding information, Kubernetes service metadata, and request ID is intentional. |
 | `locale`         | string  | `auto`       | HTML locale. `auto` uses browser language preferences; `en` keeps English; a supported base or regional language tag forces a locale.                                                                       |
+| `logLevel`       | string  | `warn`       | Minimum eep log level sent to Envoy: `debug`, `info`, `warn`, `error`, `critical`, or `off`. Critical startup failures remain visible.                                                                      |
 | `filterCodes`    | array   | `[]`         | Error statuses to replace. Entries may be numeric or quoted individual codes, or quoted inclusive ranges such as `"500-510"`. Omitted or empty means every 4xx/5xx status.                                  |
 | `excludeDomains` | array   | `[]`         | Go/RE2 regexes matched against the request authority/Host. A match leaves the original response untouched, even when its status is selected by `filterCodes`.                                               |
 
 Unknown configuration fields, malformed JSON, empty `theme`, `locale`, or domain expressions,
-unavailable themes, unsupported locales, invalid regular expressions, and invalid filter codes fail
-plugin startup rather than silently selecting a different response. Filter codes must be 4xx or 5xx
+unavailable themes, unsupported locales, invalid log levels, invalid regular expressions, and invalid
+filter codes fail plugin startup rather than silently selecting a different response. Filter codes must be 4xx or 5xx
 values, and ranges are inclusive and must be ordered from low to high.
 
 Domain expressions are case-sensitive and unanchored unless the expression says otherwise. The matched
@@ -100,6 +102,7 @@ typed_config:
           "theme": "connection",
           "showDetails": false,
           "locale": "auto",
+          "logLevel": "warn",
           "filterCodes": [404, "500-510"],
           "excludeDomains": ["(?i)^admin\\.example\\.com(:[0-9]+)?$"]
         }
@@ -123,6 +126,7 @@ wasm:
       theme: connection
       showDetails: false
       locale: auto
+      logLevel: warn
       filterCodes: [404, "500-510"]
       excludeDomains: ["(?i)^admin\\.example\\.com(:[0-9]+)?$"]
 ```
