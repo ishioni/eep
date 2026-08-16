@@ -187,7 +187,8 @@ result with the smoke test or a browser request using the relevant configured lo
 ## Acknowledgements
 
 - HTML templates and localization data are synchronized from the sibling
-  [`error-pages`](https://github.com/tarampampam/error-pages) project.
+  [`error-pages`](https://github.com/tarampampam/error-pages) project, under its MIT License. See
+  [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md) for the required copyright and license notice.
 - Eep is built on the [Proxy-Wasm Go SDK](https://github.com/proxy-wasm/proxy-wasm-go-sdk) and
   Envoy's [Wasm HTTP filter](https://www.envoyproxy.io/docs/envoy/latest/configuration/http/http_filters/wasm_filter).
 - Licensed under the [Apache License 2.0](LICENSE).
