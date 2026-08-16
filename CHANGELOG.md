@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.2.0](https://github.com/ishioni/eep/compare/0.1.0...0.2.0) (2026-08-16)
+
+
+### Features
+
+* add configurable log level ([#21](https://github.com/ishioni/eep/issues/21)) ([169415a](https://github.com/ishioni/eep/commit/169415afec0253a9177af3364ee4e90a2ee2105f))
+* add response and domain filters ([#19](https://github.com/ishioni/eep/issues/19)) ([ee20a0f](https://github.com/ishioni/eep/commit/ee20a0fc3c9b1a7a991b87cc2765047b579139f1))
+
+
+### Bug Fixes
+
+* **release:** bump features before 1.0 ([#20](https://github.com/ishioni/eep/issues/20)) ([f4a28c2](https://github.com/ishioni/eep/commit/f4a28c20485511996ff44fa6b058a5381fc1b602))
+
+
+### Documentation
+
+* acknowledge error-pages MIT license ([d68f024](https://github.com/ishioni/eep/commit/d68f0247e6a270f42383e4740905e4e3e6a416bf))
+
+
+### Continuous Integration
+
+* publish a single wasm transport image ([#17](https://github.com/ishioni/eep/issues/17)) ([d2ae207](https://github.com/ishioni/eep/commit/d2ae20748543b0cea8d136e2554124c55ee8fa9f))
+
 ## 0.1.0 (2026-08-16)
 
 
