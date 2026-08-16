@@ -68,47 +68,29 @@ When several supported media types are present, eep selects the highest `q` valu
 header order for ties. Missing, wildcard-only, malformed, or unsupported `Accept` headers fall back
 to the configured HTML theme.
 
-## Local Development
+## Local development
 
-Build the module and start the local backend and Envoy stack:
-
-```bash
-mise run build
-docker compose up
-```
-
-The http-debug service provides endpoints that return different status codes:
-
-- `http://localhost:10000/200` - Returns 200 OK (passes through)
-- `http://localhost:10000/400` - Returns 400 (shows 4xx error page)
-- `http://localhost:10000/404` - Returns 404 (shows 4xx error page)
-- `http://localhost:10000/500` - Returns 500 (shows 5xx error page)
-- `http://localhost:10000/503` - Returns 503 (shows 5xx error page)
-
-### Quick Testing
+Run the self-contained Envoy integration test:
 
 ```bash
-# Build the module, start Envoy, verify passthrough plus 404/500 rendering, and clean up
 mise run smoke
-
-# Or inspect the running stack in a browser
-open http://localhost:10000/500
-open http://localhost:10000/404
 ```
 
-### Development Workflow
+The smoke task builds `main.wasm`, generates a temporary Envoy and Compose configuration, starts the
+`http-debug` backend with Envoy `v1.39.0`, verifies passthrough plus HTML/JSON/XML/plain-text error
+responses, checks localization and configuration, and cleans up the containers. It does not depend on
+any checked-in runtime configuration.
 
-1. Edit the built-in HTML templates in `templates/html/*.tpl.html`
-2. Edit localization source in `l10n/locales.json` when needed
-3. Rebuild with `mise run build`; localization artifacts are generated automatically
-4. Test with `mise run smoke` or visit the local endpoints in a browser
-5. Check Envoy logs with `docker compose logs -f envoy`
+For a persistent Docker deployment using a released eep image, follow the
+[`examples/docker`](examples/docker) guide. For an Envoy Gateway deployment, see the
+[`examples/kubernetes/envoy-gateway`](examples/kubernetes/envoy-gateway) manifests and guide.
 
-### Stopping the Environment
+### Development workflow
 
-```bash
-docker compose down
-```
+1. Edit the built-in HTML templates in `templates/html/*.tpl.html`.
+2. Edit localization source in `l10n/locales.json` when needed.
+3. Rebuild with `mise run build`; localization artifacts are generated automatically.
+4. Run `mise run smoke`.
 
 ## Extracting the WASM File
 
@@ -190,20 +172,10 @@ typed_config:
           filename: /etc/envoy/plugin.wasm
 ```
 
-The repository's [`envoy.yaml`](envoy.yaml) is a complete local development example. It deliberately
-selects `ghost`, disables details, and forces Polish localization so the smoke test verifies that the
-configuration is consumed.
-For a release-image Docker Compose deployment, see [`examples/docker`](examples/docker). Run the local
-configuration with:
-
-```bash
-docker run --rm -it \
-  -v $(pwd)/envoy.yaml:/etc/envoy/envoy.yaml \
-  -v $(pwd)/plugin.wasm:/etc/envoy/plugin.wasm \
-  -p 10000:10000 \
-  envoyproxy/envoy:v1.39.0 \
-  -c /etc/envoy/envoy.yaml
-```
+The smoke test generates its own Envoy configuration and deliberately selects `ghost`, disables
+request details, and forces Polish localization so configuration consumption is tested together with
+runtime behavior. For a persistent Docker deployment using a released image, see
+[`examples/docker`](examples/docker).
 
 ### Using Envoy Gateway
 
@@ -242,24 +214,15 @@ the same Envoy instance. A ready-to-adapt policy is available in
 
 ## Testing
 
-The Compose setup includes a test backend (`http-debug`) that makes testing easy. Run the automated smoke test with `mise run smoke`, or start the stack manually:
+Run the automated integration test through Envoy:
 
 ```bash
-mise run build
-docker compose up -d
-
-# Test manually
-curl http://localhost:10000/200   # Normal response (passes through)
-curl http://localhost:10000/400   # Client error (custom 4xx page)
-curl http://localhost:10000/404   # Not found (custom 4xx page)
-curl http://localhost:10000/500   # Server error (custom 5xx page)
-curl http://localhost:10000/503   # Service unavailable (custom 5xx page)
-
-# View in browser for full styling
-open http://localhost:10000/500
+mise run smoke
 ```
 
-You can also access the Envoy admin interface at http://localhost:9901
+For manual requests against a persistent deployment, use the commands in
+[`examples/docker/README.md`](examples/docker/README.md). The Envoy admin interface is available at
+`http://localhost:9901` when that example is running.
 
 ## How It Works
 
@@ -321,7 +284,7 @@ Eep intercepts all valid 4xx and 5xx statuses. To change that policy, update `Pa
 
 ```
 .
-├── main.go                    # Entry point and WASM contexts
+├── cmd/eep/main.go            # Entry point and WASM contexts
 ├── internal/                  # Internal packages
 │   ├── config/               # Runtime plugin configuration
 │   └── errorpages/           # Negotiation and rendering
@@ -337,17 +300,16 @@ Eep intercepts all valid 4xx and 5xx statuses. To change that policy, update `Pa
 │   ├── default.tpl.txt       # Default plain text response template
 │   ├── default.tpl.xml       # Default XML response template
 │   └── html/                 # Built-in HTML themes copied from error-pages
+├── tools/smoke-envoy.sh       # Self-contained Envoy integration test
+├── examples/                  # Docker and Envoy Gateway deployment examples
 ├── Dockerfile                 # Multi-stage Docker build
-├── Dockerfile.debug           # Debug build configuration
-├── docker-compose.yaml        # Local testing setup
-├── envoy.yaml                 # Envoy configuration
 ├── go.mod                     # Go module dependencies
 └── README.md                  # This file
 ```
 
 ### Code Structure
 
-**Main Package (`main.go`):**
+**Main Package (`cmd/eep/main.go`):**
 
 - `vmContext`: VM-level context for the plugin
 - `pluginContext`: owns one plugin instance's runtime configuration and immutable renderer
@@ -372,7 +334,7 @@ The plugin uses different log levels:
 View logs in real-time:
 
 ```bash
-docker compose logs -f envoy
+docker compose --file examples/docker/compose.yaml logs -f envoy
 ```
 
 ## License
