@@ -25,8 +25,9 @@ import (
 )
 
 const (
-	defaultTheme  = "connection"
-	defaultLocale = "auto"
+	defaultTheme    = "connection"
+	defaultLocale   = "auto"
+	defaultLogLevel = LogLevelWarn
 )
 
 // Config represents eep's plugin configuration.
@@ -34,6 +35,7 @@ type Config struct {
 	Theme          string            `json:"theme"`
 	ShowDetails    bool              `json:"showDetails"`
 	Locale         string            `json:"locale"`
+	LogLevel       LogLevel          `json:"logLevel"`
 	FilterCodes    filtering.Codes   `json:"filterCodes"`
 	ExcludeDomains filtering.Domains `json:"excludeDomains"`
 }
@@ -44,6 +46,7 @@ func Default() Config {
 		Theme:       defaultTheme,
 		ShowDetails: false,
 		Locale:      defaultLocale,
+		LogLevel:    defaultLogLevel,
 	}
 }
 
@@ -63,6 +66,7 @@ func Parse(content []byte) (*Config, error) {
 		Theme          *string           `json:"theme"`
 		ShowDetails    *bool             `json:"showDetails"`
 		Locale         *string           `json:"locale"`
+		LogLevel       *string           `json:"logLevel"`
 		FilterCodes    filtering.Codes   `json:"filterCodes"`
 		ExcludeDomains filtering.Domains `json:"excludeDomains"`
 	}
@@ -90,6 +94,13 @@ func Parse(content []byte) (*Config, error) {
 			return nil, fmt.Errorf("plugin configuration field %q must not be empty", "locale")
 		}
 		cfg.Locale = *raw.Locale
+	}
+	if raw.LogLevel != nil {
+		level, err := ParseLogLevel(*raw.LogLevel)
+		if err != nil {
+			return nil, fmt.Errorf("plugin configuration field %q: %w", "logLevel", err)
+		}
+		cfg.LogLevel = level
 	}
 	cfg.FilterCodes = raw.FilterCodes
 	cfg.ExcludeDomains = raw.ExcludeDomains

@@ -41,6 +41,7 @@ static_resources:
                               "theme": "connection",
                               "showDetails": false,
                               "locale": "auto",
+                              "logLevel": "warn",
                               "filterCodes": [],
                               "excludeDomains": []
                             }

@@ -35,9 +35,9 @@ curl --include --header 'Accept: application/json' http://localhost:10000/404
 ```
 
 The configured HTML theme is `connection`, request details are disabled, the locale is selected from
-browser preferences, every 4xx/5xx status is handled, and no domains are excluded. Change the JSON
-under `config.configuration.value` in [`envoy.yaml`](envoy.yaml), restart Envoy, and request another
-error response to try other settings. See the root [configuration reference](../../README.md#configuration)
+browser preferences, eep logs use the default `warn` level, every 4xx/5xx status is handled, and no
+domains are excluded. Change the JSON under `config.configuration.value` in [`envoy.yaml`](envoy.yaml), restart Envoy, and
+request another error response to try other settings. See the root [configuration reference](../../README.md#configuration)
 for `filterCodes` selectors and exclusionary `excludeDomains` regexes.
 
 Stop and remove the stack:
