@@ -18,10 +18,12 @@ spec:
         type: Image
         image:
           # Replace this tag with the desired released eep version.
-          url: oci://ghcr.io/ishioni/eep:v0.1.0
+          url: oci://ghcr.io/ishioni/eep:0.1.0
       # Envoy Gateway serializes this object as JSON for the Wasm plugin.
       config:
         theme: connection
         showDetails: false
         locale: auto
+        filterCodes: []
+        excludeDomains: []
       failOpen: false

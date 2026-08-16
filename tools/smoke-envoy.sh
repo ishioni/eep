@@ -31,6 +31,21 @@ assert_error_response() {
     grep -Fq "${expected_body}" "${response_body}"
 }
 
+assert_passthrough_error_response() {
+    host=$1
+    status_code=$2
+
+    status=$(curl -sS -D "${response_headers}" -o "${response_body}" -w '%{http_code}' \
+        -H "Accept: text/html" -H "Host: ${host}" "http://localhost:10000/${status_code}")
+    [ "${status}" = "${status_code}" ]
+    test -s "${response_body}"
+
+    if grep -Fq '<svg class="ghost"' "${response_body}"; then
+        echo "eep replaced a response that should have passed through" >&2
+        exit 1
+    fi
+}
+
 cat >"${compose_file}" <<EOF
 ---
 name: eep-smoke
@@ -97,7 +112,9 @@ static_resources:
                             {
                               "theme": "ghost",
                               "showDetails": false,
-                              "locale": "pl"
+                              "locale": "pl",
+                              "filterCodes": [404, "500-510"],
+                              "excludeDomains": ["^skip\\.example\\.test$"]
                             }
                         vm_config:
                           runtime: envoy.wasm.runtime.v8
@@ -150,7 +167,10 @@ assert_error_response 'application/json' 'application/json; charset=utf-8' '"err
 assert_error_response 'application/xml' 'application/xml; charset=utf-8' '<error>' 404
 assert_error_response 'text/plain' 'text/plain; charset=utf-8' 'Error 404: Not Found' 404
 assert_error_response 'text/html' 'text/html; charset=utf-8' '<title>500: Internal Server Error</title>' 500
+assert_passthrough_error_response 'allowed.example.test' 403
+assert_passthrough_error_response 'skip.example.test' 404
 
+assert_error_response 'text/html' 'text/html; charset=utf-8' '<title>500: Internal Server Error</title>' 500
 grep -Fq '<svg class="ghost"' "${response_body}"
 grep -Fq 'window.l10n.setLocale("pl")' "${response_body}"
 

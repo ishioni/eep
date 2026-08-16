@@ -40,7 +40,9 @@ static_resources:
                             {
                               "theme": "connection",
                               "showDetails": false,
-                              "locale": "auto"
+                              "locale": "auto",
+                              "filterCodes": [],
+                              "excludeDomains": []
                             }
                         vm_config:
                           runtime: envoy.wasm.runtime.v8

@@ -59,18 +59,28 @@ defaults:
 {
   "theme": "connection",
   "showDetails": false,
-  "locale": "auto"
+  "locale": "auto",
+  "filterCodes": [],
+  "excludeDomains": []
 }
 ```
 
-| Field         | Type    | Default      | Description                                                                                                                                                                                                 |
-| ------------- | ------- | ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `theme`       | string  | `connection` | Built-in HTML theme. Available themes are the filenames in [`templates/html`](templates/html) without the `.tpl.html` suffix, for example `connection`, `cats`, and `ghost`.                                |
-| `showDetails` | boolean | `false`      | Adds request metadata to rendered responses. Keep this disabled for public-facing errors unless exposing the host, URI, forwarding information, Kubernetes service metadata, and request ID is intentional. |
-| `locale`      | string  | `auto`       | HTML locale. `auto` uses browser language preferences; `en` keeps English; a supported base or regional language tag forces a locale.                                                                       |
+| Field            | Type    | Default      | Description                                                                                                                                                                                                 |
+| ---------------- | ------- | ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `theme`          | string  | `connection` | Built-in HTML theme. Available themes are the filenames in [`templates/html`](templates/html) without the `.tpl.html` suffix, for example `connection`, `cats`, and `ghost`.                                |
+| `showDetails`    | boolean | `false`      | Adds request metadata to rendered responses. Keep this disabled for public-facing errors unless exposing the host, URI, forwarding information, Kubernetes service metadata, and request ID is intentional. |
+| `locale`         | string  | `auto`       | HTML locale. `auto` uses browser language preferences; `en` keeps English; a supported base or regional language tag forces a locale.                                                                       |
+| `filterCodes`    | array   | `[]`         | Error statuses to replace. Entries may be numeric or quoted individual codes, or quoted inclusive ranges such as `"500-510"`. Omitted or empty means every 4xx/5xx status.                                  |
+| `excludeDomains` | array   | `[]`         | Go/RE2 regexes matched against the request authority/Host. A match leaves the original response untouched, even when its status is selected by `filterCodes`.                                               |
 
-Unknown configuration fields, malformed JSON, empty `theme` or `locale` values, unavailable themes,
-and unsupported locales fail plugin startup rather than silently selecting a different response.
+Unknown configuration fields, malformed JSON, empty `theme`, `locale`, or domain expressions,
+unavailable themes, unsupported locales, invalid regular expressions, and invalid filter codes fail
+plugin startup rather than silently selecting a different response. Filter codes must be 4xx or 5xx
+values, and ranges are inclusive and must be ordered from low to high.
+
+Domain expressions are case-sensitive and unanchored unless the expression says otherwise. The matched
+value may include a port, so use an expression such as `(?i)^admin\\.example\\.com(:[0-9]+)?$` when an
+exact, case-insensitive domain match with an optional port is required.
 
 ### Direct Envoy
 
@@ -86,7 +96,13 @@ typed_config:
     configuration:
       "@type": type.googleapis.com/google.protobuf.StringValue
       value: |
-        {"theme":"connection","showDetails":false,"locale":"auto"}
+        {
+          "theme": "connection",
+          "showDetails": false,
+          "locale": "auto",
+          "filterCodes": [404, "500-510"],
+          "excludeDomains": ["(?i)^admin\\.example\\.com(:[0-9]+)?$"]
+        }
 ```
 
 ### Envoy Gateway
@@ -107,6 +123,8 @@ wasm:
       theme: connection
       showDetails: false
       locale: auto
+      filterCodes: [404, "500-510"]
+      excludeDomains: ["(?i)^admin\\.example\\.com(:[0-9]+)?$"]
 ```
 
 `rootID` must be unique among Wasm extensions attached to the same Envoy instance. Do not use

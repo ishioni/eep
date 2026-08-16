@@ -20,6 +20,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+
+	"github.com/ishioni/eep/internal/filtering"
 )
 
 const (
@@ -29,9 +31,11 @@ const (
 
 // Config represents eep's plugin configuration.
 type Config struct {
-	Theme       string `json:"theme"`
-	ShowDetails bool   `json:"showDetails"`
-	Locale      string `json:"locale"`
+	Theme          string            `json:"theme"`
+	ShowDetails    bool              `json:"showDetails"`
+	Locale         string            `json:"locale"`
+	FilterCodes    filtering.Codes   `json:"filterCodes"`
+	ExcludeDomains filtering.Domains `json:"excludeDomains"`
 }
 
 // Default returns the configuration used when the host does not provide plugin configuration.
@@ -56,9 +60,11 @@ func Parse(content []byte) (*Config, error) {
 	}
 
 	var raw struct {
-		Theme       *string `json:"theme"`
-		ShowDetails *bool   `json:"showDetails"`
-		Locale      *string `json:"locale"`
+		Theme          *string           `json:"theme"`
+		ShowDetails    *bool             `json:"showDetails"`
+		Locale         *string           `json:"locale"`
+		FilterCodes    filtering.Codes   `json:"filterCodes"`
+		ExcludeDomains filtering.Domains `json:"excludeDomains"`
 	}
 
 	decoder := json.NewDecoder(bytes.NewReader(content))
@@ -85,6 +91,8 @@ func Parse(content []byte) (*Config, error) {
 		}
 		cfg.Locale = *raw.Locale
 	}
+	cfg.FilterCodes = raw.FilterCodes
+	cfg.ExcludeDomains = raw.ExcludeDomains
 
 	return &cfg, nil
 }
