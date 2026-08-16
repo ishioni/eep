@@ -13,7 +13,7 @@ WORKDIR /workspace
 COPY go.mod go.sum ./
 RUN go mod download
 
-COPY main.go ./
+COPY cmd/ cmd/
 COPY internal/ internal/
 COPY l10n/ l10n/
 COPY templates/ templates/
@@ -21,7 +21,7 @@ COPY templates/ templates/
 RUN go generate ./l10n/...
 RUN GOOS=wasip1 GOARCH=wasm go build -trimpath -buildmode=c-shared \
     -ldflags "-s -w -X main.version=${VERSION}" \
-    -o main.wasm main.go
+    -o main.wasm ./cmd/eep
 
 FROM scratch
 ARG VERSION=dev

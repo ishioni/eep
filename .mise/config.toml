@@ -16,7 +16,7 @@ depends = ["l10n-generate"]
 run = """
 GOOS=wasip1 GOARCH=wasm go build -trimpath -buildmode=c-shared \
   -ldflags "-s -w -X main.version=${VERSION:-dev}" \
-  -o main.wasm main.go
+  -o main.wasm ./cmd/eep
 """
 
 [tasks.test]
