@@ -94,12 +94,6 @@ docker build \
   --tag eep .
 """
 
-[tasks.docker-run]
-description = "Build the module and run the local Envoy stack"
-run = """
-mise run build
-docker compose up --build
-"""
 
 [tasks.clean]
 description = "Remove generated build and test artifacts"

@@ -1,9 +1,21 @@
 #!/usr/bin/env sh
 set -eu
 
+repo_root=$(CDPATH='' cd -- "$(dirname -- "$0")/.." && pwd)
+workdir=$(mktemp -d)
+compose_file=${workdir}/compose.yaml
+envoy_file=${workdir}/envoy.yaml
+response_body=
+response_headers=
+
+compose() {
+    docker compose --project-name eep-smoke --file "${compose_file}" "$@"
+}
+
 cleanup() {
+    compose down --volumes >/dev/null 2>&1 || true
+    rm -rf "${workdir}"
     rm -f "${response_body:-}" "${response_headers:-}"
-    docker compose down -v >/dev/null 2>&1 || true
 }
 
 assert_error_response() {
@@ -19,16 +31,110 @@ assert_error_response() {
     grep -Fq "${expected_body}" "${response_body}"
 }
 
+cat >"${compose_file}" <<EOF
+---
+name: eep-smoke
+
+services:
+  http-debug:
+    image: ghcr.io/ishioni/http-debug:0.0.3
+
+  envoy:
+    image: envoyproxy/envoy:v1.39.0
+    command: ["-c", "/etc/envoy/envoy.yaml", "--log-level", "info"]
+    ports:
+      - "10000:10000"
+      - "9901:9901"
+    volumes:
+      - "${envoy_file}:/etc/envoy/envoy.yaml:ro"
+      - "${repo_root}/main.wasm:/etc/envoy/plugin.wasm:ro"
+    depends_on:
+      http-debug:
+        condition: service_started
+EOF
+
+cat >"${envoy_file}" <<'EOF'
+---
+admin:
+  address:
+    socket_address:
+      address: 0.0.0.0
+      port_value: 9901
+
+static_resources:
+  listeners:
+    - name: http
+      address:
+        socket_address:
+          address: 0.0.0.0
+          port_value: 10000
+      filter_chains:
+        - filters:
+            - name: envoy.filters.network.http_connection_manager
+              typed_config:
+                "@type": type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
+                stat_prefix: ingress_http
+                route_config:
+                  name: local_route
+                  virtual_hosts:
+                    - name: backend
+                      domains: ["*"]
+                      routes:
+                        - match:
+                            prefix: "/"
+                          route:
+                            cluster: http_debug
+                            timeout: 30s
+                http_filters:
+                  - name: envoy.filters.http.wasm
+                    typed_config:
+                      "@type": type.googleapis.com/envoy.extensions.filters.http.wasm.v3.Wasm
+                      config:
+                        name: eep
+                        configuration:
+                          "@type": type.googleapis.com/google.protobuf.StringValue
+                          value: |
+                            {
+                              "theme": "ghost",
+                              "showDetails": false,
+                              "locale": "pl"
+                            }
+                        vm_config:
+                          runtime: envoy.wasm.runtime.v8
+                          code:
+                            local:
+                              filename: /etc/envoy/plugin.wasm
+                  - name: envoy.filters.http.router
+                    typed_config:
+                      "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
+
+  clusters:
+    - name: http_debug
+      type: STRICT_DNS
+      lb_policy: ROUND_ROBIN
+      connect_timeout: 5s
+      load_assignment:
+        cluster_name: http_debug
+        endpoints:
+          - lb_endpoints:
+              - endpoint:
+                  address:
+                    socket_address:
+                      address: http-debug
+                      port_value: 8080
+EOF
+
 trap cleanup EXIT INT TERM
 
+cd "${repo_root}"
 mise run build
-docker compose up -d --build --force-recreate
+compose up -d --force-recreate
 
 attempt=0
 until curl -fsS http://localhost:10000/200 >/dev/null 2>&1; do
     attempt=$((attempt + 1))
     if [ "${attempt}" -ge 30 ]; then
-        docker compose logs envoy
+        compose logs envoy
         echo "Envoy did not become ready" >&2
         exit 1
     fi
@@ -45,6 +151,7 @@ assert_error_response 'application/xml' 'application/xml; charset=utf-8' '<error
 assert_error_response 'text/plain' 'text/plain; charset=utf-8' 'Error 404: Not Found' 404
 assert_error_response 'text/html' 'text/html; charset=utf-8' '<title>500: Internal Server Error</title>' 500
 
+grep -Fq '<svg class="ghost"' "${response_body}"
 grep -Fq 'window.l10n.setLocale("pl")' "${response_body}"
 
 if grep -Fq '<table class="details">' "${response_body}"; then
@@ -52,8 +159,8 @@ if grep -Fq '<table class="details">' "${response_body}"; then
     exit 1
 fi
 
-if docker compose logs envoy | grep -Eiq 'missing import|failed to load wasm|failed to render'; then
-    docker compose logs envoy
+if compose logs envoy | grep -Eiq 'missing import|failed to load wasm|failed to render'; then
+    compose logs envoy
     echo "Envoy reported a WASM loading or rendering failure" >&2
     exit 1
 fi
