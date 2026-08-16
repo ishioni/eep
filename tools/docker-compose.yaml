@@ -1,0 +1,24 @@
+name: eep
+
+services:
+  # Debug HTTP backend that returns various status codes
+  http-debug:
+    image: ghcr.io/ishioni/http-debug:0.0.3
+    container_name: http-debug
+    ports:
+      - "8080:8080"
+
+  # Envoy proxy with WASM plugin
+  envoy:
+    image: envoyproxy/envoy:v1.39.0
+    container_name: eep-envoy
+    ports:
+      - "10000:10000"
+      - "9901:9901" # Admin interface
+    volumes:
+      - ./envoy.yaml:/etc/envoy/envoy.yaml:ro
+      - ../main.wasm:/etc/envoy/wasm/plugin.wasm
+    depends_on:
+      http-debug:
+        condition: service_started
+    command: ["-c", "/etc/envoy/envoy.yaml", "--log-level", "info"]

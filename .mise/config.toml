@@ -88,12 +88,18 @@ run = "./tools/smoke-envoy.sh"
 [tasks.docker-build]
 description = "Build the OCI artifact"
 run = """
-docker build \
-  --build-arg GO_VERSION="$(mise config get tools.go)" \
-  --build-arg VERSION="${VERSION:-dev}" \
+docker build \\
+  --build-arg GO_VERSION="$(mise config get tools.go)" \\
+  --build-arg VERSION="${VERSION:-dev}" \\
   --tag eep .
 """
 
+[tasks.docker-run]
+description = "Build the module and run the local Envoy stack"
+run = """
+mise run build
+docker compose --file tools/docker-compose.yaml up --detach --force-recreate
+"""
 
 [tasks.clean]
 description = "Remove generated build and test artifacts"
