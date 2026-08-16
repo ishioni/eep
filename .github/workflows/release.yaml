@@ -61,7 +61,8 @@ jobs:
         type=raw,value=latest,enable=${{ github.event_name == 'release' }}
         type=ref,event=branch
       output: image
-      platforms: linux/amd64,linux/arm64
+      # The OCI image is a transport container for the architecture-independent WASM module.
+      platforms: linux/amd64
       push: true
       sbom: true
       set-meta-annotations: true
