@@ -17,7 +17,7 @@ services:
       - "9901:9901" # Admin interface
     volumes:
       - ./envoy.yaml:/etc/envoy/envoy.yaml:ro
-      - ./main.wasm:/etc/envoy/wasm/plugin.wasm
+      - ../main.wasm:/etc/envoy/wasm/plugin.wasm
     depends_on:
       http-debug:
         condition: service_started
