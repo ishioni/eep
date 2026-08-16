@@ -1,115 +1,59 @@
 # eep
 
-**eep** (Envoy Error Pages) is an Envoy Proxy-Wasm extension written in Go that intercepts backend error responses (4xx and 5xx status codes) and replaces them with custom HTML, JSON, XML, or plain-text error pages.
+**eep** (Envoy Error Pages) is a Go Proxy-Wasm HTTP filter for Envoy. It replaces backend 4xx and
+5xx response bodies with branded error pages while preserving the original status code.
 
-## Features
+It renders an HTML theme for browsers and negotiates JSON, XML, or plain-text responses for API
+clients from the request's `Accept` header. Built-in HTML pages can be localized automatically or
+configured for a specific locale.
 
-- **Automatic Error Interception**: Detects and handles all 4xx and 5xx HTTP status codes
-- **Content Negotiation**: Responds with HTML, JSON, XML, or plain text according to the request's `Accept` header
-- **Custom Error Pages**: Provides error pages for all client errors (4xx) and server errors (5xx)
-- **Template-Based Design**: Built-in response templates are stored in separate files for easy customization without Go knowledge
-- **Runtime Configuration**: Select the HTML theme, request-detail visibility, and locale through the host's plugin configuration
-- **Localization**: Localize HTML pages automatically from browser preferences or force a configured locale
-- **Version Tracking**: Automatically embeds the git commit SHA into the plugin for easy version identification
-- **Lightweight**: Compiled to WASM for minimal overhead
+## Requirements
 
-## Prerequisites
+To run eep, use one of the following:
 
-- [mise](https://mise.jdx.dev/)
-- Docker with Compose v2
-- Git
+- Envoy Proxy **v1.39.0 or later**.
+- Envoy Gateway **v1.9.0 or later** when using its default Envoy image, which is Envoy v1.39.0.
 
-Install the pinned Go and project tools with:
+If you override Envoy Gateway's Envoy image, it must still be Envoy v1.39.0 or later. Earlier
+versions do not provide the WASI hostcalls used by the Go runtime.
 
-```bash
-mise install
+## Quickstart
+
+Download `eep.wasm` and `eep.wasm.sha256` from a GitHub release for a standalone Envoy deployment,
+or use the published OCI image with Envoy Gateway.
+
+- **Direct Envoy with Docker Compose:** follow [`examples/docker`](examples/docker). It extracts the
+  WASM module from an eep image and loads it into Envoy.
+- **Envoy Gateway:** adapt and apply
+  [`examples/kubernetes/envoy-gateway/eep.yaml`](examples/kubernetes/envoy-gateway/eep.yaml). It
+  attaches eep to selected `Gateway` resources with an `EnvoyExtensionPolicy`.
+
+For example, after starting the Docker example:
+
+```sh
+curl --include http://localhost:10000/404
+curl --include --header 'Accept: application/json' http://localhost:10000/404
+curl --include --header 'Accept: application/xml' http://localhost:10000/500
+curl --include --header 'Accept: text/plain' http://localhost:10000/503
 ```
 
-Tool versions and development tasks are defined in `.mise/config.toml` and locked in
-`.mise/mise.lock`.
+Supported response representations are:
 
-## Building
-
-```bash
-# Build main.wasm
-mise run build
-
-# Run Go tests with the race detector
-mise run test
-
-# Build the scratch OCI artifact
-mise run docker-build
-
-# List all available tasks
-mise tasks
-```
-
-The release artifact is `main.wasm`, produced directly by `mise run build`.
-
-## Runtime compatibility
-
-Eep requires Envoy Proxy `v1.39.0` or later. It also supports Envoy Gateway `v1.9.0` or later
-when using Gateway's default Envoy image, which is Envoy `v1.39.0`. If you override the Gateway
-Envoy image, use an Envoy `v1.39.0+` image.
-
-## Response formats
-
-Eep chooses an error representation from the request's `Accept` header and preserves the original
-4xx or 5xx status code. The supported media types are:
-
-| `Accept` media type                                             | Response `Content-Type`           |
+| Request `Accept` media type                                     | Response `Content-Type`           |
 | --------------------------------------------------------------- | --------------------------------- |
 | `text/html`                                                     | `text/html; charset=utf-8`        |
 | `application/json`, `text/json`, or a `+json` structured suffix | `application/json; charset=utf-8` |
 | `application/xml`, `text/xml`, or a `+xml` structured suffix    | `application/xml; charset=utf-8`  |
 | `text/plain`                                                    | `text/plain; charset=utf-8`       |
 
-When several supported media types are present, eep selects the highest `q` value and preserves
-header order for ties. Missing, wildcard-only, malformed, or unsupported `Accept` headers fall back
-to the configured HTML theme.
+When multiple supported types are accepted, eep selects the highest `q` value and keeps request
+header order for ties. Missing, wildcard-only, malformed, or unsupported `Accept` headers use the
+configured HTML theme.
 
-## Local development
+## Configuration
 
-Run the self-contained Envoy integration test:
-
-```bash
-mise run smoke
-```
-
-The smoke task builds `main.wasm`, generates a temporary Envoy and Compose configuration, starts the
-`http-debug` backend with Envoy `v1.39.0`, verifies passthrough plus HTML/JSON/XML/plain-text error
-responses, checks localization and configuration, and cleans up the containers. It does not depend on
-any checked-in runtime configuration.
-
-For a persistent Docker deployment using a released eep image, follow the
-[`examples/docker`](examples/docker) guide. For an Envoy Gateway deployment, see the
-[`examples/kubernetes/envoy-gateway`](examples/kubernetes/envoy-gateway) manifests and guide.
-
-### Development workflow
-
-1. Edit the built-in HTML templates in `templates/html/*.tpl.html`.
-2. Edit localization source in `l10n/locales.json` when needed.
-3. Rebuild with `mise run build`; localization artifacts are generated automatically.
-4. Run `mise run smoke`.
-
-## Extracting the WASM File
-
-To extract the WASM file from the Docker image for standalone use:
-
-```bash
-docker create --name eep-extract --entrypoint /plugin.wasm eep:latest
-docker cp eep-extract:/plugin.wasm ./plugin.wasm
-docker rm eep-extract
-```
-
-## Running with Envoy
-
-This extension requires Envoy `v1.39.0` or later. Envoy Gateway users require `v1.9.0` or later when using its default Envoy image.
-
-### Configuration
-
-Eep accepts a strict JSON object through the Proxy-Wasm plugin configuration. If no configuration is
-provided, it uses the following defaults:
+Eep receives a strict JSON configuration object through the Proxy-Wasm host. Omitting it uses these
+defaults:
 
 ```json
 {
@@ -119,37 +63,19 @@ provided, it uses the following defaults:
 }
 ```
 
-| Field         | Type    | Default      | Description                                                                                     |
-| ------------- | ------- | ------------ | ----------------------------------------------------------------------------------------------- |
-| `theme`       | string  | `connection` | Built-in HTML theme name from `templates/html/` (for example `connection`, `cats`, or `ghost`). |
-| `showDetails` | boolean | `false`      | Whether rendered responses include request metadata.                                            |
-| `locale`      | string  | `auto`       | HTML locale: browser-selected `auto`, English, or a supported base/region-qualified language.   |
+| Field         | Type    | Default      | Description                                                                                                                                                                                                 |
+| ------------- | ------- | ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `theme`       | string  | `connection` | Built-in HTML theme. Available themes are the filenames in [`templates/html`](templates/html) without the `.tpl.html` suffix, for example `connection`, `cats`, and `ghost`.                                |
+| `showDetails` | boolean | `false`      | Adds request metadata to rendered responses. Keep this disabled for public-facing errors unless exposing the host, URI, forwarding information, Kubernetes service metadata, and request ID is intentional. |
+| `locale`      | string  | `auto`       | HTML locale. `auto` uses browser language preferences; `en` keeps English; a supported base or regional language tag forces a locale.                                                                       |
 
-Unknown fields, malformed JSON, an empty theme or locale, an unavailable theme, or an unsupported locale
-cause plugin startup to fail rather than silently serving an unexpected page. When enabled, `showDetails`
-exposes request metadata such as the host, URI, forwarded-for value, Kubernetes service identifiers, and
-request ID; keep it `false` for public-facing error responses unless that information is intended to be visible.
+Unknown configuration fields, malformed JSON, empty `theme` or `locale` values, unavailable themes,
+and unsupported locales fail plugin startup rather than silently selecting a different response.
 
-#### Localization
+### Direct Envoy
 
-Localization applies to HTML responses only. JSON, XML, and plain-text responses remain English. Supported
-translated locales are `de`, `es`, `fr`, `hu`, `id`, `it`, `ko`, `nl`, `no`, `pl`, `pt`, `ro`, `ru`, `uk`,
-and `zh`.
-
-- `locale: auto` embeds the client-side localization runtime and selects from `navigator.languages`.
-- An explicit locale such as `pl` forces that language for every HTML page rendered by the plugin instance.
-- Regional tags fall back to a supported base language, for example `fr-CA` to `fr`.
-- English (`en` or a region-qualified tag such as `en-US`) keeps the original content and omits the script.
-
-The pages remain readable in English if JavaScript is disabled. Localization uses an inline script, so a strict
-Content Security Policy must explicitly permit it. The embedded runtime adds roughly 54 KiB to localized HTML
-responses before Envoy compression; compression remains the proxy's responsibility.
-
-### Using Envoy Directly
-
-1. Extract the WASM file (see above).
-2. Configure the Wasm filter's `configuration` as a `google.protobuf.StringValue`. Its `value` is the
-   JSON passed to eep:
+Pass the JSON object through the Wasm filter's `google.protobuf.StringValue` configuration. The
+[Docker example](examples/docker/envoy.yaml) shows the complete filter configuration:
 
 ```yaml
 name: envoy.filters.http.wasm
@@ -160,188 +86,108 @@ typed_config:
     configuration:
       "@type": type.googleapis.com/google.protobuf.StringValue
       value: |
-        {
-          "theme": "connection",
-          "showDetails": false,
-          "locale": "auto"
-        }
-    vm_config:
-      runtime: envoy.wasm.runtime.v8
-      code:
-        local:
-          filename: /etc/envoy/plugin.wasm
+        {"theme":"connection","showDetails":false,"locale":"auto"}
 ```
 
-The smoke test generates its own Envoy configuration and deliberately selects `ghost`, disables
-request details, and forces Polish localization so configuration consumption is tested together with
-runtime behavior. For a persistent Docker deployment using a released image, see
-[`examples/docker`](examples/docker).
+### Envoy Gateway
 
-### Using Envoy Gateway
-
-Use `EnvoyExtensionPolicy.spec.wasm[].config` for ordinary eep configuration. Envoy Gateway serializes
-this object to JSON and supplies it as the plugin configuration. `env.hostKeys` only forwards existing
-Envoy-process environment variables and is not needed for theme, detail, or locale settings.
+Configure eep through `EnvoyExtensionPolicy.spec.wasm[].config`. Envoy Gateway serializes that
+object as JSON and supplies it to the plugin at startup. The complete policy is in
+[`examples/kubernetes/envoy-gateway/eep.yaml`](examples/kubernetes/envoy-gateway/eep.yaml):
 
 ```yaml
-apiVersion: gateway.envoyproxy.io/v1alpha1
-kind: EnvoyExtensionPolicy
-metadata:
-  name: eep
-  namespace: network
-spec:
-  targetSelectors:
-    - group: gateway.networking.k8s.io
-      kind: Gateway
-      matchLabels:
-        role: production
-  wasm:
-    - name: eep
-      rootID: eep
-      code:
-        type: Image
-        image:
-          url: oci://ghcr.io/ishioni/eep:v0.1.0
-      config:
-        theme: connection
-        showDetails: false
-        locale: auto
+wasm:
+  - name: eep
+    rootID: eep
+    code:
+      type: Image
+      image:
+        url: oci://ghcr.io/ishioni/eep:<release-tag>
+    config:
+      theme: connection
+      showDetails: false
+      locale: auto
 ```
 
-`rootID` identifies the extension's root context and must be unique among Wasm extensions attached to
-the same Envoy instance. A ready-to-adapt policy is available in
-[`examples/kubernetes/envoy-gateway`](examples/kubernetes/envoy-gateway).
+`rootID` must be unique among Wasm extensions attached to the same Envoy instance. Do not use
+`env.hostKeys` for eep's settings: it only forwards existing Envoy-process environment variables and
+is unnecessary for theme, detail, and locale configuration.
 
-## Testing
+### Localization
 
-Run the automated integration test through Envoy:
+Localization applies only to HTML responses; JSON, XML, and plain-text responses stay in English.
+Supported translated locales are `de`, `es`, `fr`, `hu`, `id`, `it`, `ko`, `nl`, `no`, `pl`, `pt`,
+`ro`, `ru`, `uk`, and `zh`.
 
-```bash
-mise run smoke
-```
+- `locale: auto` embeds the localization runtime and selects a supported language from
+  `navigator.languages`.
+- A configured locale, such as `fr` or `fr-CA`, is forced for every rendered HTML page. Regional tags
+  fall back to their supported base locale.
+- English (`en`, `en-US`, and similar tags) leaves the page in its original English and omits the
+  localization script.
 
-For manual requests against a persistent deployment, use the commands in
-[`examples/docker/README.md`](examples/docker/README.md). The Envoy admin interface is available at
-`http://localhost:9901` when that example is running.
-
-## How It Works
-
-### Response Processing
-
-1. **Interception**: The plugin monitors all HTTP response headers
-2. **Detection**: When it detects a 4xx or 5xx status code, it flags the response for modification
-3. **Replacement**: The original response body is replaced with a custom HTML error page
-4. **Headers**: Content-Type, Content-Length, and Content-Encoding headers are updated appropriately
-
-### Supported Error Codes
-
-- **4xx (Client Errors)**: 400, 401, 402, 403, 404, 405, 406, 407, 408, 409, 410, etc.
-  - Displays an orange-themed "Client Error" page
-- **5xx (Server Errors)**: 500, 501, 502, 503, 504, 505, etc.
-  - Displays a red-themed "Server Error" page
-
-## Customization
-
-### Modifying Error Pages
-
-The built-in error page templates are copied from the sibling `error-pages` project and stored under `templates/`:
-
-- `templates/html/*.tpl.html` - Built-in HTML themes selected by `theme`
-- `templates/default.tpl.json` - Default JSON response template
-- `templates/default.tpl.xml` - Default XML response template
-- `templates/default.tpl.txt` - Default plain-text response template
-
-You can edit these template files directly. They are embedded into the WASM binary at compile time using Go's `embed` package, so after editing them, you'll need to rebuild:
-
-```bash
-mise run build
-# or build the OCI artifact
-mise run docker-build
-```
-
-The templates include:
-
-- Modern, responsive design
-- Gradient backgrounds
-- Action buttons (Go Back, Return Home, Retry)
-- Mobile-friendly layout
-- Customizable colors, text, and styling
-
-### Status-specific content
-
-Templates can branch on `.StatusCode` with standard `text/template` actions. For example:
-
-```gotemplate
-{{ if eq .StatusCode 404 }}The requested page does not exist.{{ else }}{{ .Description }}{{ end }}
-```
-
-Eep intercepts all valid 4xx and 5xx statuses. To change that policy, update `ParseErrorStatus` in
-`internal/errorpages/status.go` and its table-driven tests.
+Pages remain readable in English when JavaScript is disabled. The localization runtime is inline, so
+a strict Content Security Policy must allow it.
 
 ## Development
 
-### Project Structure
+[Mise](https://mise.jdx.dev/) is the development toolchain source of truth. It provides the pinned Go
+version and all project tasks.
 
-```
-.
-├── cmd/eep/main.go            # Entry point and WASM contexts
-├── internal/                  # Internal packages
-│   ├── config/               # Runtime plugin configuration
-│   └── errorpages/           # Negotiation and rendering
-│       ├── data.go           # Upstream-compatible template data
-│       ├── format.go         # Accept-header content negotiation
-│       ├── functions.go      # error-pages-compatible template functions
-│       ├── renderer.go       # Per-format template selection
-│       ├── status.go         # Error status parsing and defaults
-│       └── template.go       # Parsed text/template execution
-├── l10n/                      # Localization source, generator, and embedded runtime
-├── templates/                 # Error response templates
-│   ├── default.tpl.json      # Default JSON response template
-│   ├── default.tpl.txt       # Default plain text response template
-│   ├── default.tpl.xml       # Default XML response template
-│   └── html/                 # Built-in HTML themes copied from error-pages
-├── tools/smoke-envoy.sh       # Self-contained Envoy integration test
-├── examples/                  # Docker and Envoy Gateway deployment examples
-├── Dockerfile                 # Multi-stage Docker build
-├── go.mod                     # Go module dependencies
-└── README.md                  # This file
+```sh
+mise install
+mise tasks
 ```
 
-### Code Structure
+Common tasks:
 
-**Main Package (`cmd/eep/main.go`):**
-
-- `vmContext`: VM-level context for the plugin
-- `pluginContext`: owns one plugin instance's runtime configuration and immutable renderer
-- `httpContext`: captures request metadata and performs response interception
-- runtime configuration is read from the Proxy-Wasm host during plugin startup
-
-**Internal packages:**
-
-- `internal/config`: strict JSON runtime configuration and defaults
-- `internal/errorpages`: pure status parsing, content negotiation, and rendering
-- `l10n`: locale validation plus generated, embedded client-side localization
-
-### Logging
-
-The plugin uses different log levels:
-
-- `LogInfo`: Plugin initialization and error interception events
-- `LogDebug`: Detailed status codes and operation confirmations
-- `LogWarn`: Non-critical issues
-- `LogError`: Critical failures
-
-View logs in real-time:
-
-```bash
-docker compose --file examples/docker/compose.yaml logs -f envoy
+```sh
+mise run fmt && mise run oxfmt
+mise run test
+mise run build       # writes main.wasm for local development
+mise run smoke       # builds and tests eep through Envoy in temporary containers
+mise run docker-run  # starts the persistent local stack in tools/
 ```
 
-## License
+The smoke test generates its own Compose and Envoy configuration and does not depend on checked-in
+runtime configuration. Stop the persistent local stack with:
 
-Apache License 2.0 - See the license header in source files for details.
+```sh
+docker compose --file tools/docker-compose.yaml down --volumes
+```
 
-## References
+GitHub releases publish the local build output as `eep.wasm` together with `eep.wasm.sha256`.
 
-- [Proxy-WASM Go SDK](https://github.com/proxy-wasm/proxy-wasm-go-sdk)
-- [Envoy WASM Documentation](https://www.envoyproxy.io/docs/envoy/latest/configuration/http/http_filters/wasm_filter)
+### Templates
+
+Templates use Go's standard [`text/template`](https://pkg.go.dev/text/template) behavior and are
+embedded in the WASM module at build time:
+
+- HTML themes: `templates/html/*.tpl.html`
+- JSON response: `templates/default.tpl.json`
+- XML response: `templates/default.tpl.xml`
+- Plain-text response: `templates/default.tpl.txt`
+
+To add an HTML theme, add a non-empty `*.tpl.html` file under `templates/html/`; eep discovers
+built-in themes at build time. Update or add renderer tests when changing template data or functions,
+then run `mise run build` and `mise run smoke`.
+
+### Locales
+
+`l10n/locales.json` is the localization source. Generated localization artifacts are derived from it
+at build time:
+
+```sh
+mise run l10n-generate
+```
+
+Update `l10n/locales.json` to add or change translations, regenerate the artifacts, and verify the
+result with the smoke test or a browser request using the relevant configured locale.
+
+## Acknowledgements
+
+- HTML templates and localization data are synchronized from the sibling
+  [`error-pages`](https://github.com/tarampampam/error-pages) project.
+- Eep is built on the [Proxy-Wasm Go SDK](https://github.com/proxy-wasm/proxy-wasm-go-sdk) and
+  Envoy's [Wasm HTTP filter](https://www.envoyproxy.io/docs/envoy/latest/configuration/http/http_filters/wasm_filter).
+- Licensed under the [Apache License 2.0](LICENSE).
