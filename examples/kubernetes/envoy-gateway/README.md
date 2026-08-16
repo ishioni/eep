@@ -11,7 +11,11 @@ namespace. It requires Envoy Gateway `v1.9.0+`, whose default Envoy image is com
    forwarded-for values, service identifiers, and request IDs in error responses. Keep it `false`
    for public-facing gateways unless that disclosure is intentional.
 3. Set `config.locale` to `auto`, English, or a supported translated locale such as `pl`.
-4. Apply the policy:
+4. Optionally set `config.filterCodes` to individual error codes and inclusive ranges. Omitted or empty
+   means every 4xx/5xx status.
+5. Optionally add Go/RE2 regexes to `config.excludeDomains`. A matching request authority/Host bypasses
+   eep and preserves the upstream error response.
+6. Apply the policy:
 
    ```sh
    kubectl apply --filename eep.yaml

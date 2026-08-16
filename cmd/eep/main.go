@@ -19,6 +19,7 @@ import (
 
 	"github.com/ishioni/eep/internal/config"
 	"github.com/ishioni/eep/internal/errorpages"
+	"github.com/ishioni/eep/internal/filtering"
 	"github.com/ishioni/eep/l10n"
 	"github.com/ishioni/eep/templates"
 
@@ -50,6 +51,7 @@ type pluginContext struct {
 	types.DefaultPluginContext
 
 	config               config.Config
+	filter               filtering.Policy
 	renderer             *errorpages.Renderer
 	localizationDisabled bool
 }
@@ -58,6 +60,7 @@ type pluginContext struct {
 func (ctx *pluginContext) NewHttpContext(contextID uint32) types.HttpContext {
 	return &httpContext{
 		renderer:             ctx.renderer,
+		filter:               ctx.filter,
 		showDetails:          ctx.config.ShowDetails,
 		localizationDisabled: ctx.localizationDisabled,
 	}
@@ -107,14 +110,17 @@ func (ctx *pluginContext) OnPluginStart(pluginConfigurationSize int) types.OnPlu
 	}
 
 	ctx.config = *pluginConfig
+	ctx.filter = filtering.NewPolicy(pluginConfig.FilterCodes, pluginConfig.ExcludeDomains)
 	ctx.renderer = renderer
 	ctx.localizationDisabled = locale.Disabled()
 
 	proxywasm.LogInfof(
-		"error page templates loaded: theme=%s, show_details=%v, locale=%s",
+		"error page templates loaded: theme=%s, show_details=%v, locale=%s, filter_codes=%d, exclude_domains=%d",
 		ctx.config.Theme,
 		ctx.config.ShowDetails,
 		locale.String(),
+		ctx.config.FilterCodes.Len(),
+		ctx.config.ExcludeDomains.Len(),
 	)
 	return types.OnPluginStartStatusOK
 }
@@ -124,6 +130,7 @@ type httpContext struct {
 	types.DefaultHttpContext
 
 	renderer             *errorpages.Renderer
+	filter               filtering.Policy
 	showDetails          bool
 	localizationDisabled bool
 	shouldReplaceBody    bool
@@ -149,9 +156,9 @@ func (ctx *httpContext) OnHttpRequestHeaders(numHeaders int, endOfStream bool) t
 		ctx.responseFormat = errorpages.FormatFromAccept(accept)
 	}
 
-	// Capture request data for error page rendering
-	if host, err := proxywasm.GetHttpRequestHeader(":authority"); err == nil {
-		ctx.host = host
+	// Capture request data for error page rendering and host exclusion.
+	if authority, err := proxywasm.GetHttpRequestHeader(":authority"); err == nil && authority != "" {
+		ctx.host = authority
 	} else if host, err := proxywasm.GetHttpRequestHeader("host"); err == nil {
 		ctx.host = host
 	}
@@ -199,8 +206,8 @@ func (ctx *httpContext) OnHttpResponseHeaders(numHeaders int, endOfStream bool) 
 
 	proxywasm.LogDebugf("response status code: %s", status)
 
-	// Check if this is a 4xx or 5xx error.
-	if statusCode, ok := errorpages.ParseErrorStatus(status); ok {
+	// Replace selected 4xx and 5xx errors unless the request host is excluded.
+	if statusCode, ok := errorpages.ParseErrorStatus(status); ok && ctx.filter.ShouldHandle(statusCode, ctx.host) {
 		if ctx.renderer == nil || !ctx.renderer.HasFormat(ctx.responseFormat) {
 			proxywasm.LogErrorf("no error page template for response format %q", ctx.responseFormat.ContentType())
 			return types.ActionContinue
