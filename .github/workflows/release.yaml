@@ -95,13 +95,14 @@ jobs:
           VERSION: ${{ github.event.release.tag_name }}
         run: |
           mise run build
-          sha256sum main.wasm > main.wasm.sha256
+          cp main.wasm eep.wasm
+          sha256sum eep.wasm > eep.wasm.sha256
       - name: Attach WASM to release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RELEASE_TAG: ${{ github.event.release.tag_name }}
         run: >-
           gh release upload "${RELEASE_TAG}"
-          main.wasm
-          main.wasm.sha256
+          eep.wasm
+          eep.wasm.sha256
           --clobber
