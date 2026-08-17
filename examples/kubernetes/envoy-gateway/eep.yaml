@@ -25,6 +25,8 @@ spec:
         showDetails: false
         locale: auto
         logLevel: warn
-        filterCodes: []
-        excludeDomains: []
+        # Only server our error pages for these codes, the rest come untouched from upstream
+        # filterCodes: [400-410,"500"]
+        # Don't serve error pages for these domains
+        # excludeDomains: ["*.foobar.com"]
       failOpen: false
