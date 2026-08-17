@@ -1,12 +1,12 @@
 # Envoy Gateway example
 
-This manifest attaches eep to every `Gateway` labelled `role: production` in the `network`
-namespace. It requires Envoy Gateway `v1.9.0+`, whose default Envoy image is compatible with eep.
+This manifest attaches eep to every `Gateway` in the `network` namespace. It requires Envoy Gateway
+`v1.9.0+`, whose default Envoy image is compatible with eep.
 
 ## Configure and apply
 
-1. Update `metadata.namespace`, the `targetSelectors` labels, and the OCI image tag in
-   [`eep.yaml`](eep.yaml) and [`client-traffic-policy.yaml`](client-traffic-policy.yaml) for your deployment.
+1. Update `metadata.namespace` and the OCI image tag in [`eep.yaml`](eep.yaml) and
+   [`client-traffic-policy.yaml`](client-traffic-policy.yaml) for your deployment.
 2. Review `config.showDetails`. When enabled, eep includes request metadata such as host, URI,
    forwarded-for values, service identifiers, and request IDs in error responses. Keep it `false`
    for public-facing gateways unless that disclosure is intentional.

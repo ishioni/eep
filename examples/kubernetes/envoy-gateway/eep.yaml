@@ -8,8 +8,6 @@ spec:
   targetSelectors:
     - group: gateway.networking.k8s.io
       kind: Gateway
-      matchLabels:
-        role: production
   wasm:
     - name: eep
       # Must be unique among Wasm extensions attached to the same Envoy instance.

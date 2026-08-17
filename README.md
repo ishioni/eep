@@ -27,7 +27,7 @@ or use the published OCI image with Envoy Gateway.
 - **Envoy Gateway:** adapt and apply
   [`examples/kubernetes/envoy-gateway/eep.yaml`](examples/kubernetes/envoy-gateway/eep.yaml) and
   [`examples/kubernetes/envoy-gateway/client-traffic-policy.yaml`](examples/kubernetes/envoy-gateway/client-traffic-policy.yaml).
-  The first attaches eep to selected `Gateway` resources with an `EnvoyExtensionPolicy`; the second
+  The first attaches eep to `Gateway` resources with an `EnvoyExtensionPolicy`; the second
   configures the response buffer required by larger error-page templates.
 
 For example, after starting the Docker example:

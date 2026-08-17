@@ -8,8 +8,6 @@ spec:
   targetSelectors:
     - group: gateway.networking.k8s.io
       kind: Gateway
-      matchLabels:
-        role: production
   connection:
     # Envoy Gateway's default is 32KiB. Use at least 1MiB for eep's HTML responses.
     bufferLimit: 1Mi
