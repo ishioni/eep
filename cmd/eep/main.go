@@ -104,7 +104,7 @@ func (ctx *pluginContext) OnPluginStart(pluginConfigurationSize int) types.OnPlu
 
 	pluginConfig, err := config.Parse(pluginConfiguration)
 	if err != nil {
-		proxywasm.LogCriticalf("failed to parse JSON plugin configuration: %v", err)
+		proxywasm.LogCriticalf("invalid plugin configuration: %v", err)
 		return types.OnPluginStartStatusFailed
 	}
 
@@ -112,14 +112,14 @@ func (ctx *pluginContext) OnPluginStart(pluginConfigurationSize int) types.OnPlu
 
 	locale, err := l10n.Resolve(pluginConfig.Locale)
 	if err != nil {
-		logMessagef(pluginConfig.LogLevel, config.LogLevelCritical, "invalid locale configuration: %v", err)
+		logMessagef(pluginConfig.LogLevel, config.LogLevelCritical, "invalid plugin configuration field %q: %v", "locale", err)
 		return types.OnPluginStartStatusFailed
 	}
 
 	// Validate the configured theme at startup rather than silently serving a different theme.
 	templateBytes, err := templates.GetTemplate(pluginConfig.Theme)
 	if err != nil {
-		logMessagef(pluginConfig.LogLevel, config.LogLevelCritical, "failed to load configured theme %q: %v", pluginConfig.Theme, err)
+		logMessagef(pluginConfig.LogLevel, config.LogLevelCritical, "invalid plugin configuration field %q: %v", "theme", err)
 		return types.OnPluginStartStatusFailed
 	}
 
