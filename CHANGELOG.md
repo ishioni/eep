@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.2.1](https://github.com/ishioni/eep/compare/0.2.0...0.2.1) (2026-08-17)
+
+
+### Bug Fixes
+
+* validate plugin configuration fields ([#23](https://github.com/ishioni/eep/issues/23)) ([34d2d8d](https://github.com/ishioni/eep/commit/34d2d8d11fa62c47b6fe9ee8fe9a46eb5626c0bb))
+
+
+### Documentation
+
+* configure Envoy Gateway response buffering ([#24](https://github.com/ishioni/eep/issues/24)) ([42ea3ae](https://github.com/ishioni/eep/commit/42ea3ae79105595f235835388ccc1839141314b3))
+* fix examples ([554f1b4](https://github.com/ishioni/eep/commit/554f1b4f2630324714832db0aa577e98b85f9f84))
+
 ## [0.2.0](https://github.com/ishioni/eep/compare/0.1.0...0.2.0) (2026-08-16)
 
 
