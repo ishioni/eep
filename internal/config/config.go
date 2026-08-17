@@ -63,12 +63,12 @@ func Parse(content []byte) (*Config, error) {
 	}
 
 	var raw struct {
-		Theme          *string           `json:"theme"`
-		ShowDetails    *bool             `json:"showDetails"`
-		Locale         *string           `json:"locale"`
-		LogLevel       *string           `json:"logLevel"`
-		FilterCodes    filtering.Codes   `json:"filterCodes"`
-		ExcludeDomains filtering.Domains `json:"excludeDomains"`
+		Theme          json.RawMessage `json:"theme"`
+		ShowDetails    json.RawMessage `json:"showDetails"`
+		Locale         json.RawMessage `json:"locale"`
+		LogLevel       json.RawMessage `json:"logLevel"`
+		FilterCodes    json.RawMessage `json:"filterCodes"`
+		ExcludeDomains json.RawMessage `json:"excludeDomains"`
 	}
 
 	decoder := json.NewDecoder(bytes.NewReader(content))
@@ -81,31 +81,84 @@ func Parse(content []byte) (*Config, error) {
 	}
 
 	if raw.Theme != nil {
-		if *raw.Theme == "" {
+		theme, err := parseStringField("theme", raw.Theme)
+		if err != nil {
+			return nil, err
+		}
+		if theme == "" {
 			return nil, fmt.Errorf("plugin configuration field %q must not be empty", "theme")
 		}
-		cfg.Theme = *raw.Theme
+		cfg.Theme = theme
 	}
 	if raw.ShowDetails != nil {
-		cfg.ShowDetails = *raw.ShowDetails
+		showDetails, err := parseBoolField("showDetails", raw.ShowDetails)
+		if err != nil {
+			return nil, err
+		}
+		cfg.ShowDetails = showDetails
 	}
 	if raw.Locale != nil {
-		if *raw.Locale == "" {
+		locale, err := parseStringField("locale", raw.Locale)
+		if err != nil {
+			return nil, err
+		}
+		if locale == "" {
 			return nil, fmt.Errorf("plugin configuration field %q must not be empty", "locale")
 		}
-		cfg.Locale = *raw.Locale
+		cfg.Locale = locale
 	}
 	if raw.LogLevel != nil {
-		level, err := ParseLogLevel(*raw.LogLevel)
+		logLevel, err := parseStringField("logLevel", raw.LogLevel)
+		if err != nil {
+			return nil, err
+		}
+		if logLevel == "" {
+			return nil, fmt.Errorf("plugin configuration field %q must not be empty", "logLevel")
+		}
+		level, err := ParseLogLevel(logLevel)
 		if err != nil {
 			return nil, fmt.Errorf("plugin configuration field %q: %w", "logLevel", err)
 		}
 		cfg.LogLevel = level
 	}
-	cfg.FilterCodes = raw.FilterCodes
-	cfg.ExcludeDomains = raw.ExcludeDomains
+	if raw.FilterCodes != nil {
+		if err := json.Unmarshal(raw.FilterCodes, &cfg.FilterCodes); err != nil {
+			return nil, fmt.Errorf("plugin configuration field %q: %w", "filterCodes", err)
+		}
+	}
+	if raw.ExcludeDomains != nil {
+		if err := json.Unmarshal(raw.ExcludeDomains, &cfg.ExcludeDomains); err != nil {
+			return nil, fmt.Errorf("plugin configuration field %q: %w", "excludeDomains", err)
+		}
+	}
 
 	return &cfg, nil
+}
+
+func parseStringField(name string, raw json.RawMessage) (string, error) {
+	if bytes.Equal(bytes.TrimSpace(raw), []byte("null")) {
+		return "", fmt.Errorf("plugin configuration field %q must be a string", name)
+	}
+
+	var value string
+	if err := json.Unmarshal(raw, &value); err != nil {
+		return "", fmt.Errorf("plugin configuration field %q must be a string", name)
+	}
+
+	return value, nil
+}
+
+func parseBoolField(name string, raw json.RawMessage) (bool, error) {
+	if bytes.Equal(bytes.TrimSpace(raw), []byte("null")) {
+		return false, fmt.Errorf("plugin configuration field %q must be a boolean", name)
+	}
+
+	var value bool
+	if err := json.Unmarshal(raw, &value); err != nil {
+		return false, fmt.Errorf("plugin configuration field %q must be a boolean", name)
+	}
+
+	return value, nil
 }
 
 func ensureEOF(decoder *json.Decoder) error {
