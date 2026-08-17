@@ -25,8 +25,10 @@ or use the published OCI image with Envoy Gateway.
 - **Direct Envoy with Docker Compose:** follow [`examples/docker`](examples/docker). It extracts the
   WASM module from an eep image and loads it into Envoy.
 - **Envoy Gateway:** adapt and apply
-  [`examples/kubernetes/envoy-gateway/eep.yaml`](examples/kubernetes/envoy-gateway/eep.yaml). It
-  attaches eep to selected `Gateway` resources with an `EnvoyExtensionPolicy`.
+  [`examples/kubernetes/envoy-gateway/eep.yaml`](examples/kubernetes/envoy-gateway/eep.yaml) and
+  [`examples/kubernetes/envoy-gateway/client-traffic-policy.yaml`](examples/kubernetes/envoy-gateway/client-traffic-policy.yaml).
+  The first attaches eep to selected `Gateway` resources with an `EnvoyExtensionPolicy`; the second
+  configures the response buffer required by larger error-page templates.
 
 For example, after starting the Docker example:
 
@@ -130,6 +132,13 @@ wasm:
       filterCodes: [404, "500-510"]
       excludeDomains: ["(?i)^admin\\.example\\.com(:[0-9]+)?$"]
 ```
+
+Envoy Gateway's default response buffer is 32 KiB. Several built-in HTML themes exceed that size,
+which causes Envoy to report `response_payload_too_large` and return the upstream error instead of
+eep's page. Configure a `ClientTrafficPolicy` with `connection.bufferLimit: 1Mi` for gateways using
+eep; the recommended policy is included in
+[`examples/kubernetes/envoy-gateway/client-traffic-policy.yaml`](examples/kubernetes/envoy-gateway/client-traffic-policy.yaml).
+Increase the limit further for larger custom templates.
 
 `rootID` must be unique among Wasm extensions attached to the same Envoy instance. Do not use
 `env.hostKeys` for eep's settings: it only forwards existing Envoy-process environment variables and
