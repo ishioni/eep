@@ -135,7 +135,7 @@ wasm:
 
 Envoy Gateway's default response buffer is 32 KiB. Several built-in HTML themes exceed that size,
 which causes Envoy to report `response_payload_too_large` and return the upstream error instead of
-eep's page. Configure a `ClientTrafficPolicy` with `connection.bufferLimit: 1Mi` for gateways using
+eep's page. Configure a `ClientTrafficPolicy` with `connection.bufferLimit: 1Mi` and `http2.initialStreamWindowSize: 1Mi` for gateways using
 eep; the recommended policy is included in
 [`examples/kubernetes/envoy-gateway/client-traffic-policy.yaml`](examples/kubernetes/envoy-gateway/client-traffic-policy.yaml).
 Increase the limit further for larger custom templates.
