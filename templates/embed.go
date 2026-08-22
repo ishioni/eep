@@ -56,8 +56,8 @@ func GetTemplateNames() ([]string, error) {
 		}
 
 		name := e.Name()
-		if strings.HasSuffix(name, ".tpl.html") {
-			names = append(names, strings.TrimSuffix(name, ".tpl.html"))
+		if before, ok := strings.CutSuffix(name, ".tpl.html"); ok {
+			names = append(names, before)
 		}
 	}
 
