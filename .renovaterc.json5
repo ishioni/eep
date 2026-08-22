@@ -3,6 +3,13 @@
   extends: ["local>home-operations/renovate-config"],
   packageRules: [
     {
+      description: "Bump the Go module directive across minor versions",
+      matchManagers: ["gomod"],
+      matchDepNames: ["go"],
+      matchDepTypes: ["golang"],
+      rangeStrategy: "bump",
+    },
+    {
       description: "Keep the Go module and mise toolchain versions aligned",
       matchManagers: ["gomod", "mise"],
       matchDepNames: ["go"],
