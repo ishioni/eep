@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.2.2](https://github.com/ishioni/eep/compare/0.2.1...0.2.2) (2026-08-22)
+
+
+### Miscellaneous Chores
+
+* **envoy-gateway:** add http2.initialStreamWindowSize to example ctp ([#25](https://github.com/ishioni/eep/issues/25)) ([01eb774](https://github.com/ishioni/eep/commit/01eb774e8f43db887df6415973f8a385826c5851))
+* **github-action:** update action docker/setup-buildx-action (v4.2.0 → v4.3.0) ([#28](https://github.com/ishioni/eep/issues/28)) ([bf064bf](https://github.com/ishioni/eep/commit/bf064bf43c26a7e0c83364043b16a3f0fe3fd235))
+* **mise:** update mise tools ([#29](https://github.com/ishioni/eep/issues/29)) ([91950d9](https://github.com/ishioni/eep/commit/91950d916efaa1bb568c32b4ca414f9adc680f67))
+* **mise:** update tool oxfmt (0.63.0 → 0.64.0) ([#27](https://github.com/ishioni/eep/issues/27)) ([72cb83d](https://github.com/ishioni/eep/commit/72cb83dc0a4d3c031e74b17a8adcea36c61227bc))
+
 ## [0.2.1](https://github.com/ishioni/eep/compare/0.2.0...0.2.1) (2026-08-17)
 
 
