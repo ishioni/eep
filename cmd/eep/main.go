@@ -54,7 +54,7 @@ func logMessage(threshold, level config.LogLevel, message string) {
 	}
 }
 
-func logMessagef(threshold, level config.LogLevel, format string, args ...interface{}) {
+func logMessagef(threshold, level config.LogLevel, format string, args ...any) {
 	logMessage(threshold, level, fmt.Sprintf(format, args...))
 }
 

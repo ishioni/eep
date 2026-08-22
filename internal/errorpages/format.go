@@ -44,7 +44,7 @@ func FormatFromAccept(accept string) Format {
 	bestFormat := HTMLFormat
 	bestWeight := -1.0
 
-	for _, value := range strings.Split(accept, ",") {
+	for value := range strings.SplitSeq(accept, ",") {
 		mediaType, params, err := mime.ParseMediaType(strings.TrimSpace(value))
 		if err != nil {
 			continue
