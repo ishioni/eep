@@ -3,7 +3,7 @@
 
 [tools]
 actionlint = "1.7.12"
-go = "1.26.6"
+go = "1.26.7"
 "go:golang.org/x/vuln/cmd/govulncheck" = "v1.7.0"
 golangci-lint = "2.13.1"
 lefthook = "2.1.11"
