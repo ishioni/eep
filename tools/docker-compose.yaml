@@ -10,7 +10,7 @@ services:
 
   # Envoy proxy with WASM plugin
   envoy:
-    image: envoyproxy/envoy:v1.39.0
+    image: envoyproxy/envoy:v1.39.1
     container_name: eep-envoy
     ports:
       - "10000:10000"
