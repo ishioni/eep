@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.3.1](https://github.com/ishioni/eep/compare/0.3.0...0.3.1) (2026-09-06)
+
+
+### Bug Fixes
+
+* **container:** update image envoyproxy/envoy (v1.39.0 → v1.39.1) ([#35](https://github.com/ishioni/eep/issues/35)) ([ca9a5fb](https://github.com/ishioni/eep/commit/ca9a5fb4515141f4e840c131099a539b57d59f13))
+* **mise:** update tool go (1.27.0 → 1.27.1) ([#39](https://github.com/ishioni/eep/issues/39)) ([9e2dc26](https://github.com/ishioni/eep/commit/9e2dc264b5324b4cf275fa035d0a44838b38dd64))
+
+
+### Miscellaneous Chores
+
+* **github-action:** update action docker/github-builder (v1.16.0 → v1.17.0) ([#32](https://github.com/ishioni/eep/issues/32)) ([2f8a730](https://github.com/ishioni/eep/commit/2f8a730affba531696bc9825121074acfd5a8338))
+* **github-action:** update github-actions ([#34](https://github.com/ishioni/eep/issues/34)) ([a642523](https://github.com/ishioni/eep/commit/a6425238672a7462c668b5118c31d61a3e630ae2))
+* **mise:** update mise tools ([#38](https://github.com/ishioni/eep/issues/38)) ([793112d](https://github.com/ishioni/eep/commit/793112d90dd00bd465e2ed4ada9407be7248c690))
+* **mise:** update tool node (24.19.0 → v24.20.0) ([#37](https://github.com/ishioni/eep/issues/37)) ([9f79d1a](https://github.com/ishioni/eep/commit/9f79d1a62404e7c70cd02763eb369bb4427fc136))
+* **mise:** update tool oxfmt (0.64.0 → 0.65.0) ([#36](https://github.com/ishioni/eep/issues/36)) ([1d075eb](https://github.com/ishioni/eep/commit/1d075eb49e1c73a7058f4742d90edc946d23239e))
+* **mise:** update tool oxfmt (0.65.0 → 0.66.0) ([#40](https://github.com/ishioni/eep/issues/40)) ([0d26a49](https://github.com/ishioni/eep/commit/0d26a4903255c4775ff7a08489cd68b1d673c9e5))
+
 ## [0.3.0](https://github.com/ishioni/eep/compare/0.2.1...0.3.0) (2026-08-22)
 
 
