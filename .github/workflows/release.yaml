@@ -21,7 +21,7 @@ permissions:
 jobs:
   versions:
     name: Resolve versions
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     outputs:
       go-version: ${{ steps.versions.outputs.go-version }}
 
@@ -77,7 +77,7 @@ jobs:
   wasm:
     name: Publish WASM artifact
     if: ${{ github.event_name == 'release' }}
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     permissions:
       contents: write
     steps:
