@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.3.2](https://github.com/ishioni/eep/compare/0.3.1...0.3.2) (2026-09-24)
+
+
+### Miscellaneous Chores
+
+* **github-action:** update action renovatebot/github-action (v46.2.5 → v46.2.6) ([#43](https://github.com/ishioni/eep/issues/43)) ([52ed4a6](https://github.com/ishioni/eep/commit/52ed4a679c60f8fdc71d9e449dbc8cce541a08c5))
+* **github-action:** update github-actions ([#46](https://github.com/ishioni/eep/issues/46)) ([f96c320](https://github.com/ishioni/eep/commit/f96c3206c9edc89dc1f0b00de9d46344049ac4b5))
+* **mise:** update mise tools ([#41](https://github.com/ishioni/eep/issues/41)) ([ca85197](https://github.com/ishioni/eep/commit/ca8519779e2b4f33e6f00f14354274778c8b10c2))
+* **mise:** update tool lefthook (2.1.12 → 2.1.14) ([#47](https://github.com/ishioni/eep/issues/47)) ([93a4ec4](https://github.com/ishioni/eep/commit/93a4ec4f2f348d215b0889ec1d1088b818e5b853))
+* **mise:** update tool node (24.20.0 → v24.21.0) ([#42](https://github.com/ishioni/eep/issues/42)) ([13ef240](https://github.com/ishioni/eep/commit/13ef2402d793f068791f1f9d372a952f763189b1))
+* **mise:** update tool oxfmt (0.66.0 → 0.67.0) ([#44](https://github.com/ishioni/eep/issues/44)) ([5714795](https://github.com/ishioni/eep/commit/57147959fb8792b455d768bbf5f4adeb041c4ec2))
+* **mise:** update tool oxfmt (0.67.0 → 0.68.0) ([#48](https://github.com/ishioni/eep/issues/48)) ([d098ad3](https://github.com/ishioni/eep/commit/d098ad3a4c3b46a793c0ec9a9ba9264fa9d8b41b))
+* **mise:** update tool oxfmt (0.68.0 → 0.70.0) ([#50](https://github.com/ishioni/eep/issues/50)) ([d33d16c](https://github.com/ishioni/eep/commit/d33d16c8b8313d80bf8ceddc07b8b0bbc326bb99))
+
 ## [0.3.1](https://github.com/ishioni/eep/compare/0.3.0...0.3.1) (2026-09-06)
 
 
