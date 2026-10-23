@@ -1,0 +1,6 @@
+# actionlint v1.7.12 does not yet recognize GitHub's ubuntu-26.04 runner.
+# Suppress only that label warning; keep all other workflow checks enabled.
+paths:
+  .github/workflows/*.yaml:
+    ignore:
+      - '^label "ubuntu-26\.04" is unknown\.'
