@@ -1,5 +1,47 @@
 # Changelog
 
+## [0.4.0](https://github.com/ishioni/eep/compare/0.3.1...0.4.0) (2026-10-23)
+
+
+### Features
+
+* **container:** update image envoyproxy/envoy (v1.39.3 → v1.40.1) ([#65](https://github.com/ishioni/eep/issues/65)) ([56e6aec](https://github.com/ishioni/eep/commit/56e6aecb2c7d6f6837ccce006d0d82729027c934))
+
+
+### Bug Fixes
+
+* **ci:** allow ubuntu-26.04 in actionlint ([59c00c5](https://github.com/ishioni/eep/commit/59c00c51b6433104055b7e641daf3df93796c195))
+* **container:** update image envoyproxy/envoy (v1.39.1 → v1.39.2) ([#55](https://github.com/ishioni/eep/issues/55)) ([930eab8](https://github.com/ishioni/eep/commit/930eab8e897dc3ed530e10231a14803efa6f8df6))
+* **container:** update image envoyproxy/envoy (v1.39.2 → v1.39.3) ([#59](https://github.com/ishioni/eep/issues/59)) ([962911d](https://github.com/ishioni/eep/commit/962911db5561b9e5deee64d1037a2ab8e8e3e839))
+* **mise:** update tool go (1.27.1 → 1.27.3) ([#63](https://github.com/ishioni/eep/issues/63)) ([ae3949e](https://github.com/ishioni/eep/commit/ae3949ea14ac0889bc3c310ec43e71dcf2bdc6c0))
+
+
+### Miscellaneous Chores
+
+* **github-action:** update action renovatebot/github-action (v46.2.5 → v46.2.6) ([#43](https://github.com/ishioni/eep/issues/43)) ([52ed4a6](https://github.com/ishioni/eep/commit/52ed4a679c60f8fdc71d9e449dbc8cce541a08c5))
+* **github-action:** update action renovatebot/github-action (v46.3.3 → v46.3.4) ([#52](https://github.com/ishioni/eep/issues/52)) ([e9ff411](https://github.com/ishioni/eep/commit/e9ff41168e3744b6520cffb4791a047b2d899bf6))
+* **github-action:** update action renovatebot/github-action (v46.3.4 → v46.3.5) ([#53](https://github.com/ishioni/eep/issues/53)) ([c14e9bd](https://github.com/ishioni/eep/commit/c14e9bd2fde12dbf364932984195117b177f3c35))
+* **github-action:** update action renovatebot/github-action (v46.3.5 → v46.3.6) ([#56](https://github.com/ishioni/eep/issues/56)) ([deab195](https://github.com/ishioni/eep/commit/deab1959bb097e7cb877edd169eef83ca6e016e5))
+* **github-action:** update action renovatebot/github-action (v46.3.6 → v46.3.7) ([#60](https://github.com/ishioni/eep/issues/60)) ([143a02e](https://github.com/ishioni/eep/commit/143a02e202bd84ed1a68aadba82b168dea0ea64b))
+* **github-action:** update github-actions ([#46](https://github.com/ishioni/eep/issues/46)) ([f96c320](https://github.com/ishioni/eep/commit/f96c3206c9edc89dc1f0b00de9d46344049ac4b5))
+* **github-action:** update github-actions ([#49](https://github.com/ishioni/eep/issues/49)) ([f7f86b3](https://github.com/ishioni/eep/commit/f7f86b3e40a8892499bde1b9abdc4f44dd1cccef))
+* **github-action:** update github-actions ([#66](https://github.com/ishioni/eep/issues/66)) ([419814e](https://github.com/ishioni/eep/commit/419814e16c5ce748bf83f159b76574613b344284))
+* **mise:** update mise tools ([#41](https://github.com/ishioni/eep/issues/41)) ([ca85197](https://github.com/ishioni/eep/commit/ca8519779e2b4f33e6f00f14354274778c8b10c2))
+* **mise:** update mise tools ([#64](https://github.com/ishioni/eep/issues/64)) ([012d1ff](https://github.com/ishioni/eep/commit/012d1ffd09c04cb2e02119f1b40bdbc992c1f716))
+* **mise:** update tool golangci-lint (2.13.2 → 2.14.0) ([#51](https://github.com/ishioni/eep/issues/51)) ([65c7eb8](https://github.com/ishioni/eep/commit/65c7eb88174195f100c267faff7f24b07657f1de))
+* **mise:** update tool lefthook (2.1.12 → 2.1.14) ([#47](https://github.com/ishioni/eep/issues/47)) ([93a4ec4](https://github.com/ishioni/eep/commit/93a4ec4f2f348d215b0889ec1d1088b818e5b853))
+* **mise:** update tool lefthook (2.1.14 → 2.1.15) ([#57](https://github.com/ishioni/eep/issues/57)) ([b2d8fbb](https://github.com/ishioni/eep/commit/b2d8fbb34053fe54a6056cd81624eb0d963a36f7))
+* **mise:** update tool lefthook (2.1.15 → 2.1.16) ([#58](https://github.com/ishioni/eep/issues/58)) ([8349082](https://github.com/ishioni/eep/commit/83490829c18773525642c38eefa2352bdec0df45))
+* **mise:** update tool lefthook (2.1.16 → 2.1.17) ([#61](https://github.com/ishioni/eep/issues/61)) ([7cbeff4](https://github.com/ishioni/eep/commit/7cbeff41e2e09a8616ff85d1ef1ec110fe529d06))
+* **mise:** update tool node (24.20.0 → v24.21.0) ([#42](https://github.com/ishioni/eep/issues/42)) ([13ef240](https://github.com/ishioni/eep/commit/13ef2402d793f068791f1f9d372a952f763189b1))
+* **mise:** update tool node (24.21.0 → v24.22.1) ([#67](https://github.com/ishioni/eep/issues/67)) ([de8bf94](https://github.com/ishioni/eep/commit/de8bf94b0ce72ddd53b979068a0682d42070e55e))
+* **mise:** update tool oxfmt (0.66.0 → 0.67.0) ([#44](https://github.com/ishioni/eep/issues/44)) ([5714795](https://github.com/ishioni/eep/commit/57147959fb8792b455d768bbf5f4adeb041c4ec2))
+* **mise:** update tool oxfmt (0.67.0 → 0.68.0) ([#48](https://github.com/ishioni/eep/issues/48)) ([d098ad3](https://github.com/ishioni/eep/commit/d098ad3a4c3b46a793c0ec9a9ba9264fa9d8b41b))
+* **mise:** update tool oxfmt (0.68.0 → 0.70.0) ([#50](https://github.com/ishioni/eep/issues/50)) ([d33d16c](https://github.com/ishioni/eep/commit/d33d16c8b8313d80bf8ceddc07b8b0bbc326bb99))
+* **mise:** update tool oxfmt (0.70.0 → 0.71.0) ([#54](https://github.com/ishioni/eep/issues/54)) ([49828cb](https://github.com/ishioni/eep/commit/49828cb06e6ed773d6ce456aa46ca1f853ee18e6))
+* **mise:** update tool oxfmt (0.71.0 → 0.72.0) ([#62](https://github.com/ishioni/eep/issues/62)) ([c342e39](https://github.com/ishioni/eep/commit/c342e39041fde459f4fe4e4485197def7bf6455e))
+* **mise:** update tool oxfmt (0.72.0 → 0.74.0) ([#68](https://github.com/ishioni/eep/issues/68)) ([4ca893b](https://github.com/ishioni/eep/commit/4ca893ba217fd70d61bc0275a04a6a6b103d7cf9))
+
 ## [0.3.1](https://github.com/ishioni/eep/compare/0.3.0...0.3.1) (2026-09-06)
 
 
