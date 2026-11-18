@@ -113,8 +113,14 @@ typed_config:
 ### Envoy Gateway
 
 Configure eep through `EnvoyExtensionPolicy.spec.wasm[].config`. Envoy Gateway serializes that
-object as JSON and supplies it to the plugin at startup. The complete policy is in
-[`examples/kubernetes/envoy-gateway/eep.yaml`](examples/kubernetes/envoy-gateway/eep.yaml):
+object as JSON and supplies it to the plugin at startup.
+
+Choose one of the following approaches to load the plugin.
+
+#### Approach 1: Load the OCI image through Envoy Gateway
+
+Specify the published image in the extension policy. Envoy Gateway retrieves the module and
+makes it available to Envoy:
 
 ```yaml
 wasm:
@@ -133,16 +139,79 @@ wasm:
       excludeDomains: ["(?i)^admin\\.example\\.com(:[0-9]+)?$"]
 ```
 
+The complete policy is in
+[`examples/kubernetes/envoy-gateway/eep.yaml`](examples/kubernetes/envoy-gateway/eep.yaml).
+
+#### Approach 2: Mount the OCI image as a volume
+
+The same published image contains `/plugin.wasm`. Kubernetes can mount it directly into the
+Envoy container as a read-only image volume. Envoy then loads the module from its local
+filesystem instead of fetching it through Envoy Gateway.
+
+This approach requires Kubernetes and container-runtime support for image volumes, and an
+Envoy Gateway version supporting `EnvoyProxy.spec.wasmModules`.
+
+Merge the following settings into the `EnvoyProxy` associated with your Gateway:
+
+```yaml
+spec:
+  wasmModules:
+    - name: eep
+      source:
+        type: Local
+        local:
+          path: /opt/wasm/eep/plugin.wasm
+
+  provider:
+    type: Kubernetes
+    kubernetes:
+      envoyDeployment:
+        container:
+          volumeMounts:
+            - name: wasm-eep
+              mountPath: /opt/wasm/eep
+              readOnly: true
+        pod:
+          volumes:
+            - name: wasm-eep
+              image:
+                reference: ghcr.io/ishioni/eep:<release-tag>
+                pullPolicy: IfNotPresent
+```
+
+Reference the registered module by name in your extension policy, omitting `code`:
+
+```yaml
+wasm:
+  - name: eep
+    rootID: eep
+    config:
+      theme: connection
+      showDetails: false
+      locale: auto
+      logLevel: warn
+      filterCodes: [404, "500-510"]
+      excludeDomains: ["(?i)^admin\\.example\\.com(:[0-9]+)?$"]
+```
+
+The extension's `name` must match the registered `wasmModules` entry.
+
+Kubernetes prepares the image volume before starting Envoy. Module updates therefore require
+updating the volume's image reference and rolling out the proxy pods.
+
+#### Response buffering
+
 Envoy Gateway's default response buffer is 32 KiB. Several built-in HTML themes exceed that size,
 which causes Envoy to report `response_payload_too_large` and return the upstream error instead of
-eep's page. Configure a `ClientTrafficPolicy` with `connection.bufferLimit: 1Mi` and `http2.initialStreamWindowSize: 1Mi` for gateways using
-eep; the recommended policy is included in
+eep's page.
+
+For either loading approach, configure a `ClientTrafficPolicy` with
+`connection.bufferLimit: 1Mi` and `http2.initialStreamWindowSize: 1Mi`. The recommended policy is in
 [`examples/kubernetes/envoy-gateway/client-traffic-policy.yaml`](examples/kubernetes/envoy-gateway/client-traffic-policy.yaml).
 Increase the limit further for larger custom templates.
 
-`rootID` must be unique among Wasm extensions attached to the same Envoy instance. Do not use
-`env.hostKeys` for eep's settings: it only forwards existing Envoy-process environment variables and
-is unnecessary for theme, detail, and locale configuration.
+Do not use `env.hostKeys` for eep's settings: it only forwards existing Envoy-process environment
+variables and is unnecessary for theme, detail, and locale configuration.
 
 ### Localization
 
