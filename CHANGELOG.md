@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.2](https://github.com/ishioni/eep/compare/0.4.1...0.4.2) (2026-11-19)
+
+
+### Miscellaneous Chores
+
+* **github-action:** update github-actions ([#88](https://github.com/ishioni/eep/issues/88)) ([5ea95a8](https://github.com/ishioni/eep/commit/5ea95a8af37d9e85a706c70ef2999e159e5c6c07))
+
 ## [0.4.1](https://github.com/ishioni/eep/compare/0.4.0...0.4.1) (2026-11-18)
 
 
