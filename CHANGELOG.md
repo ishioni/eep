@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.4.2](https://github.com/ishioni/eep/compare/0.4.1...0.4.2) (2026-11-28)
+
+
+### Miscellaneous Chores
+
+* **github-action:** update action jdx/mise-action (v5.2.10 → v5.3.0) ([#91](https://github.com/ishioni/eep/issues/91)) ([ee3ecd8](https://github.com/ishioni/eep/commit/ee3ecd8985b9c84a4d4fa3b80cd3d476dc21c474))
+* **github-action:** update github-actions ([#88](https://github.com/ishioni/eep/issues/88)) ([5ea95a8](https://github.com/ishioni/eep/commit/5ea95a8af37d9e85a706c70ef2999e159e5c6c07))
+* **github-action:** update github-actions ([#90](https://github.com/ishioni/eep/issues/90)) ([657c20d](https://github.com/ishioni/eep/commit/657c20dc185e3f938c7076d2d544be454e262a37))
+* **github-action:** update github-actions ([#95](https://github.com/ishioni/eep/issues/95)) ([e82277a](https://github.com/ishioni/eep/commit/e82277ad0cf4abc95731850833a717c9d54d18e4))
+* **mise:** update tool lefthook (2.2.2 → 2.2.3) ([#94](https://github.com/ishioni/eep/issues/94)) ([0a58b46](https://github.com/ishioni/eep/commit/0a58b464d531db919f896be7aacfe5eabb76c7a5))
+* **mise:** update tool zizmor (1.32.0 → 1.33.0) ([#92](https://github.com/ishioni/eep/issues/92)) ([5f8e481](https://github.com/ishioni/eep/commit/5f8e481f36568dbcb55881035e70db46155b2ed1))
+* **mise:** update tool zizmor (1.33.0 → 1.33.1) ([#93](https://github.com/ishioni/eep/issues/93)) ([20fb640](https://github.com/ishioni/eep/commit/20fb640d2e913153d174b5bb9a4e915fb2807251))
+
 ## [0.4.1](https://github.com/ishioni/eep/compare/0.4.0...0.4.1) (2026-11-18)
 
 
